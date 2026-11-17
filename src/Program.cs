@@ -55,6 +55,10 @@ namespace BtTray
         readonly Dictionary<string, string> errors = new Dictionary<string, string>();
         readonly Dictionary<string, DateTime> errorUntil = new Dictionary<string, DateTime>();
 
+        readonly BatteryAlerts batteryAlerts = new BatteryAlerts();
+        readonly Queue<BatteryAlert> alertQueue = new Queue<BatteryAlert>();
+        readonly System.Windows.Forms.Timer alertTimer = new System.Windows.Forms.Timer();
+
         int refreshing;            // 0/1, interlocked
         volatile bool refreshAgain;
         bool? iconConnected;
@@ -107,6 +111,8 @@ namespace BtTray
             debounce.Tick += delegate { debounce.Stop(); RequestRefresh(); };
             trim.Interval = 2000;
             trim.Tick += delegate { trim.Stop(); TrimMemory(); };
+            alertTimer.Interval = 7000;   // spacing between notifications so one doesn't replace another
+            alertTimer.Tick += delegate { ShowNextAlert(); };
             UpdatePollInterval();
             poll.Start();
 
@@ -175,6 +181,18 @@ namespace BtTray
             UpdateTooltip();
             SetTrayIcon(AnyConnected());
             UpdatePollInterval();
+
+            foreach (BatteryAlert a in batteryAlerts.Check(devices)) alertQueue.Enqueue(a);
+            if (alertQueue.Count > 0 && !alertTimer.Enabled) ShowNextAlert();
+        }
+
+        void ShowNextAlert()
+        {
+            if (alertQueue.Count == 0) { alertTimer.Stop(); return; }
+            BatteryAlert a = alertQueue.Dequeue();
+            string title = a.Title.Length > 63 ? a.Title.Substring(0, 62) + "…" : a.Title;
+            tray.ShowBalloonTip(10000, title, a.Message, a.Critical ? ToolTipIcon.Error : ToolTipIcon.Warning);
+            alertTimer.Start();
         }
 
         bool AnyConnected() { return devices.Exists(d => d.Connected); }
@@ -289,7 +307,7 @@ namespace BtTray
             SystemEvents.UserPreferenceChanged -= OnPrefsChanged;
             tray.Visible = false;
             tray.Dispose();
-            poll.Dispose(); debounce.Dispose(); trim.Dispose();
+            poll.Dispose(); debounce.Dispose(); trim.Dispose(); alertTimer.Dispose();
             popup.Dispose();
             base.ExitThreadCore();
         }

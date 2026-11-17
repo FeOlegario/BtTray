@@ -46,6 +46,6 @@ $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 & $csc /nologo /target:winexe /optimize+ /platform:anycpu /out:bin\BtTray.exe `
     /win32icon:app.ico /win32manifest:app.manifest `
     /r:System.Windows.Forms.dll /r:System.Drawing.dll `
-    src\Bluetooth.cs src\Theme.cs src\PopupForm.cs src\Program.cs
+    src\*.cs
 if ($LASTEXITCODE -ne 0) { throw "Falha na compilação" }
 Get-Item bin\BtTray.exe | Select-Object Name, @{n='KB'; e={[math]::Round($_.Length / 1KB)}}

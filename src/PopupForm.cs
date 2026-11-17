@@ -30,7 +30,7 @@ namespace BtTray
         int scroll, hoverRow = -1;
         bool hoverBtn, hoverRefresh, hoverSettings;
 
-        Font fTitle, fName, fStatus, fButton, fGlyph, fGlyphSmall, fGlyphBattery;
+        Font fTitle, fName, fStatus, fButton, fGlyph, fGlyphSmall;
 
         public DateTime LastHidden = DateTime.MinValue;
 
@@ -55,7 +55,6 @@ namespace BtTray
             fButton = new Font("Segoe UI", 9f);
             fGlyph = new Font(Theme.IconFont, 15f);
             fGlyphSmall = new Font(Theme.IconFont, 11f);
-            fGlyphBattery = new Font(Theme.IconFont, 11f);
             BackColor = theme.Back;
             UpdateSize();
         }
@@ -270,10 +269,7 @@ namespace BtTray
                 if (d.Connected && d.Battery >= 0)
                 {
                     int x = st.Left + TextRenderer.MeasureText(g, status, fStatus, st.Size, tf).Width + Sc(10);
-                    TextRenderer.DrawText(g, Theme.BatteryGlyph(d.Battery), fGlyphBattery, new Rectangle(x, st.Top - Sc(1), Sc(22), st.Height + Sc(2)),
-                                          d.Battery <= 15 ? Color.FromArgb(232, 17, 35) : theme.SubText,
-                                          TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
-                    TextRenderer.DrawText(g, d.Battery + "%", fStatus, new Rectangle(x + Sc(24), st.Top, Sc(50), st.Height), theme.SubText, tf);
+                    DrawBatteryBar(g, d.Battery, x, st, tf);
                 }
             }
 
@@ -300,6 +296,30 @@ namespace BtTray
                 TextRenderer.DrawText(g, label, fButton, b, fore,
                                       TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             }
+        }
+
+        // Horizontal bar 0-100% whose fill shrinks and changes colour with the charge, followed by the percentage.
+        void DrawBatteryBar(Graphics g, int pct, int x, Rectangle st, TextFormatFlags tf)
+        {
+            pct = Math.Max(0, Math.Min(100, pct));
+            Color fill = Theme.BatteryColor(pct, theme.Dark);
+            int bw = Sc(56), bh = Sc(6);
+            int lineH = TextRenderer.MeasureText(g, "0%", fStatus, st.Size, tf).Height;
+            int by = st.Top + (lineH - bh) / 2 + Sc(1);
+            int avail = st.Right - x;
+            if (avail < bw + Sc(40)) bw = Math.Max(Sc(24), avail - Sc(40));
+
+            var track = new Rectangle(x, by, bw, bh);
+            FillRound(g, track, bh / 2f, Theme.BatteryTrack(theme.Dark));
+            int fw = (int)Math.Round(bw * pct / 100.0);
+            if (fw > 0)
+            {
+                fw = Math.Max(fw, bh);                    // keep the rounded ends visible at very low levels
+                FillRound(g, new Rectangle(x, by, fw, bh), bh / 2f, fill);
+            }
+
+            Color textColor = pct < Theme.BatteryLow ? fill : theme.SubText;
+            TextRenderer.DrawText(g, pct + "%", fStatus, new Rectangle(x + bw + Sc(6), st.Top, Sc(40), st.Height), textColor, tf);
         }
 
         static void FillRound(Graphics g, Rectangle r, float radius, Color c)

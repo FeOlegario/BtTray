@@ -15,6 +15,9 @@ namespace BtTray
 
         public static string IconFont = PickIconFont();
 
+        /// <summary>Only used by the preview tool in test/; the app always follows the Windows setting.</summary>
+        public static bool? ForceDark = null;
+
         static string PickIconFont()
         {
             using (var f = new Font("Segoe Fluent Icons", 10f))
@@ -48,7 +51,7 @@ namespace BtTray
         public static Theme Current()
         {
             var t = new Theme();
-            t.Dark = AppsDark();
+            t.Dark = ForceDark.HasValue ? ForceDark.Value : AppsDark();
             if (t.Dark)
             {
                 t.Back = Color.FromArgb(32, 32, 32);
@@ -103,10 +106,37 @@ namespace BtTray
             return GBluetooth;
         }
 
-        public static string BatteryGlyph(int pct)
+        // ---------------------------------------------------------------- battery bar
+        // >= 20%: shades of green (lighter near 20, deeper near 100)
+        // 11-19%: yellow (19) -> orange (11)
+        // <= 10%: red
+        public const int BatteryLow = 20, BatteryCritical = 10;
+
+        public static Color BatteryColor(int pct, bool dark)
         {
-            if (pct >= 95) return "";                       // Battery10
-            return ((char)(0xE850 + Math.Max(0, pct / 10))).ToString(); // Battery0..9
+            pct = Math.Max(0, Math.Min(100, pct));
+            if (pct <= BatteryCritical)
+                return dark ? Color.FromArgb(255, 99, 99) : Color.FromArgb(220, 38, 38);
+            if (pct < BatteryLow)
+            {
+                float t = (pct - BatteryCritical - 1) / (float)(BatteryLow - BatteryCritical - 2);   // 11 -> 0, 19 -> 1
+                return dark ? Lerp(Color.FromArgb(251, 146, 60), Color.FromArgb(250, 204, 21), t)
+                            : Lerp(Color.FromArgb(234, 88, 12), Color.FromArgb(234, 179, 8), t);
+            }
+            float g = (pct - BatteryLow) / (float)(100 - BatteryLow);                            // 20 -> 0, 100 -> 1
+            return dark ? Lerp(Color.FromArgb(190, 230, 60), Color.FromArgb(74, 222, 128), g)
+                        : Lerp(Color.FromArgb(132, 190, 22), Color.FromArgb(22, 150, 70), g);
+        }
+
+        public static Color BatteryTrack(bool dark)
+        {
+            return dark ? Color.FromArgb(70, 70, 70) : Color.FromArgb(215, 215, 215);
+        }
+
+        static Color Lerp(Color a, Color b, float t)
+        {
+            t = Math.Max(0f, Math.Min(1f, t));
+            return Color.FromArgb((int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t));
         }
 
         // ---------------------------------------------------------------- tray icon
