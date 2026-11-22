@@ -8,7 +8,7 @@
 
 ![Windows 11](https://img.shields.io/badge/tested%20on-Windows%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Size](https://img.shields.io/badge/executable-~59%20KB-success)
+![Size](https://img.shields.io/badge/executable-~66%20KB-success)
 ![RAM](https://img.shields.io/badge/idle%20RAM-~2%20MB-success)
 ![MIT License](https://img.shields.io/badge/license-MIT-yellow)
 
@@ -19,7 +19,7 @@
 ---
 
 > [!NOTE]
-> The BtTray interface is in **Brazilian Portuguese**. In this document, interface labels are shown in Portuguese followed by their translation, e.g. **Conectar** (*Connect*).
+> The BtTray interface starts in **Brazilian Portuguese**. To switch it to English, click the **⚙** gear in the panel and choose **English** under *Idioma* (*Language*). In this document, interface labels are shown in Portuguese followed by the English version, e.g. **Conectar** (*Connect*).
 
 ## Contents
 
@@ -59,7 +59,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 - 💬 **Quick tooltip on the icon**: hover to see what is connected and the battery level.
 - 🚀 **"Iniciar com o Windows"** (*Start with Windows*) option in the right-click menu.
 - 🌐 **Portuguese (Brazil) or English**: pick the language from the ⚙ gear in the panel. Portuguese is the default.
-- 🪶 **Ultralight**: a single ~59 KB `.exe`, no installer and no extra dependencies.
+- 🪶 **Ultralight**: a single ~66 KB `.exe`, no installer and no extra dependencies.
 
 ## Requirements
 
@@ -165,9 +165,9 @@ BtTray warns you through Windows when the battery gets low:
 | When | Notification |
 |---|---|
 | Reaches **20%** | ⚠️ **Bateria fraca** (*Low battery*): "*Device* is at 20% battery. It would be a good idea to charge it." |
-| Reaches **10%** | ⛔ **Bateria crítica** (*Critical battery*): "*Device* is at only 10% battery. Charge it now so you don't lose the connection." |
+| Reaches **10%** | ⛔ **Bateria crítica** (*Critical battery*): "*Device* is down to 10% battery. Charge it now to avoid losing the connection." |
 
-(The notification text is shown in Portuguese; the translation is above.)
+(Notifications follow the language chosen in the settings; the English text is above.)
 
 - Each warning appears **only once** per discharge, even if the reading flips between two values (for example, 20% → 19% → 20%).
 - The warnings are re-armed after the device is charged: the 20% one when the battery goes above 25%, and the 10% one when it goes above 15%.
@@ -183,7 +183,7 @@ Measured on Windows 11 with one paired Bluetooth headset:
 
 | Metric | Value |
 |---|---|
-| Executable size | ~59 KB |
+| Executable size | ~66 KB |
 | RAM in use with the panel closed | ~2.3 MB |
 | Idle CPU | 0% (0 ms in 15 s) |
 | Time to list devices | ~120 ms (in the background) |

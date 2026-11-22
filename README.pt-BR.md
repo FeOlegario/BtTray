@@ -8,7 +8,7 @@
 
 ![Windows 11](https://img.shields.io/badge/testado%20no-Windows%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~59%20KB-success)
+![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~66%20KB-success)
 ![RAM](https://img.shields.io/badge/RAM%20ociosa-~2%20MB-success)
 ![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-yellow)
 
@@ -56,7 +56,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 - 💬 **Dica rápida no ícone**: passe o mouse para ver o que está conectado e a bateria.
 - 🚀 **Opção "Iniciar com o Windows"** no menu do botão direito.
 - 🌐 **Português (Brasil) ou inglês**: escolha o idioma na engrenagem ⚙ do painel. O padrão é português.
-- 🪶 **Ultraleve**: um único `.exe` de ~59 KB, sem instalador e sem dependências extras.
+- 🪶 **Ultraleve**: um único `.exe` de ~66 KB, sem instalador e sem dependências extras.
 
 ## Requisitos
 
@@ -178,7 +178,7 @@ Medições em um Windows 11 com um fone Bluetooth emparelhado:
 
 | Métrica | Valor |
 |---|---|
-| Tamanho do executável | ~59 KB |
+| Tamanho do executável | ~66 KB |
 | RAM em uso com o painel fechado | ~2,3 MB |
 | CPU ocioso | 0% (0 ms em 15 s) |
 | Tempo para listar os dispositivos | ~120 ms (em segundo plano) |
