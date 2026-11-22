@@ -88,7 +88,8 @@ namespace BtTray
         public const string GBluetooth = "", GHeadphones = "", GHeadset = "", GSpeaker = "",
                             GKeyboard = "", GMouse = "", GPhone = "", GComputer = "",
                             GGamepad = "", GRefresh = "", GSettings = "",
-                            GPin = "", GPinned = "";
+                            GPin = "", GPinned = "",
+                            GBack = "\uE72B", GCheck = "\uE73E";
 
         public static string Glyph(DeviceKind k)
         {

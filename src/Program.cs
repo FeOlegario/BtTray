@@ -23,6 +23,7 @@ namespace BtTray
             using (var showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\BtTray_Show", out created))
             {
                 if (!created) { showEvent.Set(); return; }   // already running: ask it to show the flyout
+                L.Load();
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new TrayApp(showEvent));
@@ -47,7 +48,7 @@ namespace BtTray
         readonly System.Windows.Forms.Timer poll = new System.Windows.Forms.Timer();
         readonly System.Windows.Forms.Timer debounce = new System.Windows.Forms.Timer();
         readonly System.Windows.Forms.Timer trim = new System.Windows.Forms.Timer();
-        readonly MenuItem startupItem;
+        readonly MenuItem openItem, refreshItem, startupItem, btSettingsItem, exitItem;
 
         List<BtDevice> devices = new List<BtDevice>();
         readonly Dictionary<string, Pending> pending = new Dictionary<string, Pending>();
@@ -88,18 +89,16 @@ namespace BtTray
             pinnedIcons.UnpinRequested += Unpin;
             pinnedIcons.Update(pins, devices);
 
-            startupItem = new MenuItem("Iniciar com o Windows", delegate { SetStartup(!startupItem.Checked); });
+            openItem = new MenuItem("", delegate { ShowPopup(); });
+            refreshItem = new MenuItem("", delegate { RequestRefresh(); });
+            startupItem = new MenuItem("", delegate { SetStartup(!startupItem.Checked); });
             startupItem.Checked = IsStartup();
-            var menu = new ContextMenu(new[]
-            {
-                new MenuItem("Abrir", delegate { ShowPopup(); }) ,
-                new MenuItem("Atualizar", delegate { RequestRefresh(); }),
-                startupItem,
-                new MenuItem("-"),
-                new MenuItem("Configurações de Bluetooth", delegate { Program.OpenBluetoothSettings(); }),
-                new MenuItem("Sair", delegate { ExitThread(); })
-            });
-            menu.MenuItems[0].DefaultItem = true;
+            btSettingsItem = new MenuItem("", delegate { Program.OpenBluetoothSettings(); });
+            exitItem = new MenuItem("", delegate { ExitThread(); });
+            var menu = new ContextMenu(new[] { openItem, refreshItem, startupItem, new MenuItem("-"), btSettingsItem, exitItem });
+            openItem.DefaultItem = true;
+            SetMenuTexts();
+            L.Changed += OnLanguageChanged;
 
             tray.ContextMenu = menu;
             tray.Text = "Bluetooth";
@@ -137,6 +136,23 @@ namespace BtTray
                     pinnedIcons.Update(pins, devices);
                 });
             }
+        }
+
+        void SetMenuTexts()
+        {
+            openItem.Text = L.T("Abrir", "Open");
+            refreshItem.Text = L.T("Atualizar", "Refresh");
+            startupItem.Text = L.T("Iniciar com o Windows", "Start with Windows");
+            btSettingsItem.Text = L.T("Configurações de Bluetooth", "Bluetooth settings");
+            exitItem.Text = L.T("Sair", "Exit");
+        }
+
+        void OnLanguageChanged()
+        {
+            SetMenuTexts();
+            UpdateTooltip();
+            pinnedIcons.Update(pins, devices);
+            popup.Invalidate();
         }
 
         void OnIconClick()
@@ -188,7 +204,8 @@ namespace BtTray
                 else if (now > p.Deadline)
                 {
                     pending.Remove(addr); busyText.Remove(addr);
-                    SetError(addr, p.Target ? "Não conectou. Ele está ligado e por perto?" : "Não foi possível desconectar.");
+                    SetError(addr, p.Target ? L.T("Não conectou. Ele está ligado e por perto?", "Did not connect. Is it on and nearby?")
+                                             : L.T("Não foi possível desconectar.", "Could not disconnect."));
                 }
             }
             foreach (string addr in new List<string>(errorUntil.Keys))
@@ -227,7 +244,7 @@ namespace BtTray
             bool target = !d.Connected;
             string addr = d.AddressHex;
             pending[addr] = new Pending { Target = target, Deadline = DateTime.Now.AddSeconds(target ? 20 : 12) };
-            busyText[addr] = target ? "Conectando…" : "Desconectando…";
+            busyText[addr] = target ? L.T("Conectando…", "Connecting…") : L.T("Desconectando…", "Disconnecting…");
             errors.Remove(addr); errorUntil.Remove(addr);
             popup.SetDevices(devices, busyText, errors);
             UpdatePollInterval();
@@ -268,8 +285,9 @@ namespace BtTray
             pinnedIcons.Update(pins, devices);
             popup.Invalidate();
             if (first)
-                tray.ShowBalloonTip(8000, "Dispositivo fixado na barra de tarefas",
-                    "Se o ícone dele ficar escondido em \"Mostrar ícones ocultos\" (^), arraste-o para a barra de tarefas.", ToolTipIcon.Info);
+                tray.ShowBalloonTip(8000, L.T("Dispositivo fixado na barra de tarefas", "Device pinned to the taskbar"),
+                    L.T("Se o ícone dele ficar escondido em \"Mostrar ícones ocultos\" (^), arraste-o para a barra de tarefas.",
+                        "If its icon ends up hidden under \"Show hidden icons\" (^), drag it onto the taskbar."), ToolTipIcon.Info);
         }
 
         void Unpin(string addr)
@@ -314,7 +332,8 @@ namespace BtTray
                 if (text.Length + line.Length > 63) break;
                 text += line;
             }
-            if (text == "Bluetooth") text = devices.Count == 0 ? "Bluetooth: nenhum dispositivo" : "Bluetooth: nada conectado";
+            if (text == "Bluetooth") text = devices.Count == 0 ? L.T("Bluetooth: nenhum dispositivo", "Bluetooth: no devices")
+                                                               : L.T("Bluetooth: nada conectado", "Bluetooth: nothing connected");
             if (tray.Text != text) tray.Text = text.Length > 63 ? text.Substring(0, 63) : text;
         }
 
@@ -342,7 +361,7 @@ namespace BtTray
             }
             catch (Exception ex)
             {
-                tray.ShowBalloonTip(4000, "BtTray", "Não foi possível alterar a inicialização: " + ex.Message, ToolTipIcon.Error);
+                tray.ShowBalloonTip(4000, "BtTray", L.T("Não foi possível alterar a inicialização: ", "Could not change the startup setting: ") + ex.Message, ToolTipIcon.Error);
             }
         }
 
@@ -360,6 +379,7 @@ namespace BtTray
         protected override void ExitThreadCore()
         {
             SystemEvents.UserPreferenceChanged -= OnPrefsChanged;
+            L.Changed -= OnLanguageChanged;
             tray.Visible = false;
             tray.Dispose();
             pinnedIcons.Dispose();

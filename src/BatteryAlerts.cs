@@ -40,8 +40,9 @@ namespace BtTray
                     result.Add(new BatteryAlert
                     {
                         Critical = true,
-                        Title = "Bateria crítica: " + d.Name,
-                        Message = d.Name + " está com apenas " + d.Battery + "% de bateria. Carregue agora para não perder a conexão."
+                        Title = L.T("Bateria crítica: ", "Critical battery: ") + d.Name,
+                        Message = L.T(d.Name + " está com apenas " + d.Battery + "% de bateria. Carregue agora para não perder a conexão.",
+                                      d.Name + " is down to " + d.Battery + "% battery. Charge it now to avoid losing the connection.")
                     });
                 }
                 else if (d.Battery <= Theme.BatteryLow && lvl < 1)
@@ -50,8 +51,9 @@ namespace BtTray
                     result.Add(new BatteryAlert
                     {
                         Critical = false,
-                        Title = "Bateria fraca: " + d.Name,
-                        Message = d.Name + " está com " + d.Battery + "% de bateria. Seria bom carregar o dispositivo."
+                        Title = L.T("Bateria fraca: ", "Low battery: ") + d.Name,
+                        Message = L.T(d.Name + " está com " + d.Battery + "% de bateria. Seria bom carregar o dispositivo.",
+                                      d.Name + " is at " + d.Battery + "% battery. It would be a good idea to charge it.")
                     });
                 }
                 level[d.AddressHex] = lvl;

@@ -55,6 +55,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 - 🌗 **Segue o tema do Windows**: claro ou escuro, com cantos arredondados.
 - 💬 **Dica rápida no ícone**: passe o mouse para ver o que está conectado e a bateria.
 - 🚀 **Opção "Iniciar com o Windows"** no menu do botão direito.
+- 🌐 **Português (Brasil) ou inglês**: escolha o idioma na engrenagem ⚙ do painel. O padrão é português.
 - 🪶 **Ultraleve**: um único `.exe` de ~59 KB, sem instalador e sem dependências extras.
 
 ## Requisitos
@@ -89,6 +90,7 @@ Veja [Compilando a partir do código](#compilando-a-partir-do-código). Leva pou
 | Botão **Conectar** / **Desconectar** | Altera a conexão do dispositivo |
 | Alfinete **📌** ao lado do botão | Fixa ou desafixa o dispositivo na barra de tarefas |
 | Ícone **⟳** no painel ou tecla **F5** | Atualiza a lista |
+| Engrenagem **⚙** no painel | Abre as configurações do BtTray (idioma: Português (Brasil) ou English) |
 | Tecla **Esc** ou clique fora | Fecha o painel |
 | **Clique direito** no ícone | Menu: Abrir, Atualizar, Iniciar com o Windows, Configurações de Bluetooth e Sair |
 | Passar o mouse sobre o ícone | Mostra os dispositivos conectados e a bateria |
@@ -196,6 +198,7 @@ Para manter o consumo baixo:
   - `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\BtTray`, **somente** se você ativar *Iniciar com o Windows*.
   - `%LOCALAPPDATA%\BtTray\servicos-desativados.txt`, **somente** ao desconectar um dispositivo não-áudio, para saber quais serviços reativar depois.
   - `%LOCALAPPDATA%\BtTray\fixados.txt`, **somente** se você fixar um dispositivo na barra de tarefas (endereço, tipo e nome dos dispositivos fixados).
+  - `%LOCALAPPDATA%\BtTray\configuracoes.txt`, **somente** se você trocar o idioma (guarda só o idioma escolhido).
 
 ## Compilando a partir do código
 
@@ -219,7 +222,7 @@ A pasta `test/` tem um utilitário de linha de comando que lista os dispositivos
 ```powershell
 New-Item -ItemType Directory -Force bin | Out-Null
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-& $csc /nologo /out:bin\bttest.exe src\Bluetooth.cs test\TestMain.cs
+& $csc /nologo /out:bin\bttest.exe src\Bluetooth.cs src\Lang.cs test\TestMain.cs
 
 .\bin\bttest.exe                 # lista os dispositivos
 .\bin\bttest.exe disconnect 0    # desconecta o dispositivo de índice 0
@@ -292,7 +295,8 @@ O workflow confere se a tag bate com a versão do `.exe`, compila e cria a Relea
 BtTray/
 ├── src/
 │   ├── Program.cs       # Ponto de entrada, ícone da bandeja, menu, atualizações e inicialização com o Windows
-│   ├── PopupForm.cs     # Painel (flyout) desenhado manualmente
+│   ├── PopupForm.cs     # Painel (flyout) desenhado manualmente, com a tela de configurações
+│   ├── Lang.cs          # Idioma da interface (pt-BR ou inglês) e onde ele fica salvo
 │   ├── Bluetooth.cs     # Enumeração, bateria, conectar/desconectar (P/Invoke)
 │   ├── BatteryAlerts.cs # Regras dos avisos de bateria fraca (20%) e crítica (10%)
 │   ├── PinnedIcons.cs   # Ícones dos dispositivos fixados na barra de tarefas e a lista salva deles
