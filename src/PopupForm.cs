@@ -13,6 +13,10 @@ namespace BtTray
         public event Action<BtDevice> ToggleRequested;
         public event Action RefreshRequested;
         public event Action DeviceChanged;
+        public event Action<BtDevice> PinRequested;
+
+        /// <summary>Addresses of the devices pinned to the taskbar (owned by TrayApp).</summary>
+        public readonly HashSet<string> Pinned = new HashSet<string>();
 
         protected override void WndProc(ref Message m)
         {
@@ -28,7 +32,9 @@ namespace BtTray
         float s = 1f;
         int W, HeaderH, RowH, FooterH, Pad, MaxRows = 6;
         int scroll, hoverRow = -1;
-        bool hoverBtn, hoverRefresh, hoverSettings;
+        bool hoverBtn, hoverPin, hoverRefresh, hoverSettings;
+        readonly ToolTip tip = new ToolTip();
+        string tipText;
 
         Font fTitle, fName, fStatus, fButton, fGlyph, fGlyphSmall;
 
@@ -47,7 +53,7 @@ namespace BtTray
                      | ControlStyles.ResizeRedraw, true);
 
             using (var g = CreateGraphics()) s = g.DpiX / 96f;
-            W = Sc(360); HeaderH = Sc(48); RowH = Sc(60); FooterH = Sc(44); Pad = Sc(6);
+            W = Sc(384); HeaderH = Sc(48); RowH = Sc(60); FooterH = Sc(44); Pad = Sc(6);
 
             fTitle = new Font("Segoe UI Semibold", 11.5f);
             fName = new Font("Segoe UI", 10f);
@@ -121,7 +127,7 @@ namespace BtTray
         {
             Theme t = Theme.Current();
             if (t.Dark != theme.Dark) { theme = t; BackColor = t.Back; if (IsHandleCreated) ApplyDwm(); }
-            scroll = 0; hoverRow = -1;
+            scroll = 0; hoverRow = -1; hoverPin = false;
             PlaceNearTray();
             Show();
             Activate();
@@ -172,6 +178,13 @@ namespace BtTray
         {
             int bw = Sc(108), bh = Sc(32);
             return new Rectangle(row.Right - bw - Sc(10), row.Top + (row.Height - bh) / 2, bw, bh);
+        }
+
+        Rectangle PinRect(Rectangle row, BtDevice d)
+        {
+            int z = Sc(32);
+            int right = d.CanToggle ? ButtonRect(row).Left - Sc(4) : row.Right - Sc(10);
+            return new Rectangle(right - z, row.Top + (row.Height - z) / 2, z, z);
         }
 
         Rectangle RefreshRect { get { int z = Sc(34); return new Rectangle(W - z - Sc(10), (HeaderH - z) / 2 + Sc(2), z, z); } }
@@ -250,7 +263,8 @@ namespace BtTray
                                   TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
 
             int textLeft = r.Left + Sc(52);
-            int textRight = d.CanToggle ? ButtonRect(r).Left - Sc(8) : r.Right - Sc(10);
+            Rectangle pr = PinRect(r, d);
+            int textRight = pr.Left - Sc(4);
             int mid = r.Top + r.Height / 2;
             TextRenderer.DrawText(g, d.Name, fName, new Rectangle(textLeft, r.Top + Sc(8), textRight - textLeft, mid - r.Top - Sc(7)),
                                   theme.Text, TextFormatFlags.Bottom | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
@@ -272,6 +286,12 @@ namespace BtTray
                     DrawBatteryBar(g, d.Battery, x, st, tf);
                 }
             }
+
+            // pin to the taskbar
+            bool pinned = Pinned.Contains(d.AddressHex);
+            if (hover && hoverPin) FillRound(g, pr, Sc(5), theme.Dark ? theme.ButtonHover : theme.Border);
+            TextRenderer.DrawText(g, pinned ? Theme.GPinned : Theme.GPin, fGlyphSmall, pr, pinned ? theme.Accent : theme.SubText,
+                                  TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
 
             // button
             if (d.CanToggle)
@@ -332,28 +352,44 @@ namespace BtTray
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            int row = -1; bool btn = false;
+            int row = -1; bool btn = false, pin = false;
             if (ListRect.Contains(e.Location))
                 for (int i = 0; i < devices.Count; i++)
                     if (RowRect(i).Contains(e.Location))
                     {
                         row = i;
                         btn = devices[i].CanToggle && ButtonRect(RowRect(i)).Contains(e.Location);
+                        pin = PinRect(RowRect(i), devices[i]).Contains(e.Location);
                         break;
                     }
             bool hr = RefreshRect.Contains(e.Location), hs = SettingsRect.Contains(e.Location);
-            if (row != hoverRow || btn != hoverBtn || hr != hoverRefresh || hs != hoverSettings)
+            if (row != hoverRow || btn != hoverBtn || pin != hoverPin || hr != hoverRefresh || hs != hoverSettings)
             {
-                hoverRow = row; hoverBtn = btn; hoverRefresh = hr; hoverSettings = hs;
-                Cursor = (btn || hr || hs) ? Cursors.Hand : Cursors.Default;
+                hoverRow = row; hoverBtn = btn; hoverPin = pin; hoverRefresh = hr; hoverSettings = hs;
+                Cursor = (btn || pin || hr || hs) ? Cursors.Hand : Cursors.Default;
+                UpdateTip();
                 Invalidate();
             }
+        }
+
+        void UpdateTip()
+        {
+            string t = null;
+            if (hoverPin && hoverRow >= 0 && hoverRow < devices.Count)
+                t = Pinned.Contains(devices[hoverRow].AddressHex)
+                    ? "Desafixar da barra de tarefas"
+                    : "Fixar na barra de tarefas (mostra o ícone e a bateria)";
+            else if (hoverRefresh) t = "Atualizar (F5)";
+            if (t == tipText) return;
+            tipText = t;
+            tip.SetToolTip(this, t);
         }
 
         protected override void OnMouseLeave(EventArgs e)
         {
             base.OnMouseLeave(e);
-            hoverRow = -1; hoverBtn = hoverRefresh = hoverSettings = false;
+            hoverRow = -1; hoverBtn = hoverPin = hoverRefresh = hoverSettings = false;
+            UpdateTip();
             Invalidate();
         }
 
@@ -369,6 +405,12 @@ namespace BtTray
                 Rectangle r = RowRect(i);
                 if (!r.Contains(e.Location)) continue;
                 BtDevice d = devices[i];
+                if (PinRect(r, d).Contains(e.Location))
+                {
+                    if (PinRequested != null) PinRequested(d);
+                    UpdateTip();
+                    return;
+                }
                 // the whole row toggles too, but only via the button for clarity
                 if (d.CanToggle && ButtonRect(r).Contains(e.Location) && !busyText.ContainsKey(d.AddressHex) && ToggleRequested != null)
                     ToggleRequested(d);

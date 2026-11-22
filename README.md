@@ -6,7 +6,7 @@
 
 ![Windows 11](https://img.shields.io/badge/testado%20no-Windows%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~48%20KB-success)
+![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~59%20KB-success)
 ![RAM](https://img.shields.io/badge/RAM%20ociosa-~2%20MB-success)
 ![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-yellow)
 
@@ -48,11 +48,12 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 - 🔌 **Conecta e desconecta com um clique.** O botão mostra "Aguarde…" enquanto a operação acontece.
 - 🔋 **Barra de bateria colorida** que diminui com a carga e muda de cor: verde, amarelo/laranja e vermelho. Aparece quando o dispositivo informa a bateria ao Windows.
 - 🔔 **Alertas de bateria fraca** no Windows aos **20%** e aos **10%**.
+- 📌 **Fixe um dispositivo na barra de tarefas**: ele ganha um ícone próprio na bandeja com o desenho do tipo de aparelho (fone, mouse, teclado…) e a **porcentagem da bateria**, sempre à vista.
 - 🖱️ **Vive na bandeja do sistema** e funciona dentro de **"Mostrar ícones ocultos" (^)**.
 - 🌗 **Segue o tema do Windows**: claro ou escuro, com cantos arredondados.
 - 💬 **Dica rápida no ícone**: passe o mouse para ver o que está conectado e a bateria.
 - 🚀 **Opção "Iniciar com o Windows"** no menu do botão direito.
-- 🪶 **Ultraleve**: um único `.exe` de ~48 KB, sem instalador e sem dependências extras.
+- 🪶 **Ultraleve**: um único `.exe` de ~59 KB, sem instalador e sem dependências extras.
 
 ## Requisitos
 
@@ -84,12 +85,26 @@ Veja [Compilando a partir do código](#compilando-a-partir-do-código). Leva pou
 |---|---|
 | **Clique esquerdo** no ícone | Abre ou fecha o painel de dispositivos |
 | Botão **Conectar** / **Desconectar** | Altera a conexão do dispositivo |
+| Alfinete **📌** ao lado do botão | Fixa ou desafixa o dispositivo na barra de tarefas |
 | Ícone **⟳** no painel ou tecla **F5** | Atualiza a lista |
 | Tecla **Esc** ou clique fora | Fecha o painel |
 | **Clique direito** no ícone | Menu: Abrir, Atualizar, Iniciar com o Windows, Configurações de Bluetooth e Sair |
 | Passar o mouse sobre o ícone | Mostra os dispositivos conectados e a bateria |
 
 **Deixar o ícone sempre visível:** por padrão, o Windows pode colocar o ícone dentro de **Mostrar ícones ocultos (^)**. Para fixá-lo na barra de tarefas, arraste o ícone para fora dessa área ou ative-o em *Configurações → Personalização → Barra de tarefas → Outros ícones da bandeja do sistema*.
+
+### Dispositivos fixados na barra de tarefas
+
+Clique no **alfinete** ao lado do botão de um dispositivo para fixá-lo. Ele ganha um ícone só dele na bandeja:
+
+- Em cima, o **desenho do tipo de dispositivo** (fone, caixa de som, mouse, teclado, controle…); embaixo, a **porcentagem da bateria**.
+- Abaixo de 20%, o número ganha a cor da bateria (amarelo/laranja e depois vermelho).
+- Se o dispositivo não informa a bateria, aparece só o desenho. Desconectado, o desenho fica apagado.
+- Passe o mouse para ver o nome e a bateria. Clique para abrir o painel. Com o botão direito, escolha **Desafixar da barra de tarefas**.
+- Os dispositivos fixados são lembrados ao reiniciar o BtTray. A bateria é atualizada a cada 60 s com o painel fechado.
+
+> [!TIP]
+> O Windows 11 costuma colocar ícones novos dentro de **Mostrar ícones ocultos (^)**. Arraste o ícone do dispositivo para a barra de tarefas (ou ative-o em *Configurações → Personalização → Barra de tarefas → Outros ícones da bandeja do sistema*). O Windows lembra essa escolha para cada dispositivo, mesmo se você desafixar e fixar de novo.
 
 **Indicador do ícone:** o ícone fica **mais apagado** quando nenhum dispositivo está conectado.
 
@@ -159,7 +174,7 @@ Medições em um Windows 11 com um fone Bluetooth emparelhado:
 
 | Métrica | Valor |
 |---|---|
-| Tamanho do executável | ~48 KB |
+| Tamanho do executável | ~59 KB |
 | RAM em uso com o painel fechado | ~2,3 MB |
 | CPU ocioso | 0% (0 ms em 15 s) |
 | Tempo para listar os dispositivos | ~120 ms (em segundo plano) |
@@ -175,9 +190,10 @@ Para manter o consumo baixo:
 
 - ❌ **Não acessa a internet**: não há telemetria, atualizações automáticas ou envio de dados.
 - ❌ **Não coleta informações** sobre você ou seus dispositivos.
-- ✅ Só grava em dois lugares no seu computador:
+- ✅ Só grava em três lugares no seu computador:
   - `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\BtTray`, **somente** se você ativar *Iniciar com o Windows*.
   - `%LOCALAPPDATA%\BtTray\servicos-desativados.txt`, **somente** ao desconectar um dispositivo não-áudio, para saber quais serviços reativar depois.
+  - `%LOCALAPPDATA%\BtTray\fixados.txt`, **somente** se você fixar um dispositivo na barra de tarefas (endereço, tipo e nome dos dispositivos fixados).
 
 ## Compilando a partir do código
 
@@ -218,7 +234,7 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 & $csc /nologo /main:BtTray.PreviewMain /out:bin\preview.exe /win32manifest:app.manifest `
     /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\PreviewMain.cs
 
-.\bin\preview.exe bin\preview.png                # gera preview-claro.png e preview-escuro.png
+.\bin\preview.exe bin\preview.png                # gera preview-claro.png, preview-escuro.png e preview-icones.png
 .\bin\preview.exe bin\preview.png --notificar    # também mostra as notificações de 20% e 10%
 ```
 
@@ -259,6 +275,7 @@ O workflow confere se a tag bate com a versão do `.exe`, compila e cria a Relea
 | Listar dispositivos | `SetupAPI` (enumeradores `BTHENUM`, `BTHLE`, `BTHLEDEVICE` e `BTHHFENUM`) |
 | Status de conexão | Propriedade de dispositivo `{83DA6326-…} 15` (conectado) |
 | Bateria | Propriedade `{104EA319-…} 2`, a mesma usada pelas Configurações do Windows |
+| Dispositivos fixados | Um ícone por dispositivo com `Shell_NotifyIcon` e um GUID estável derivado do endereço, para o Windows lembrar se ele fica visível |
 | Alertas de bateria | Notificações da bandeja (`NotifyIcon.ShowBalloonTip`), que o Windows 10/11 exibe como notificações do sistema |
 | Conectar / desconectar áudio | `IOCTL_KS_PROPERTY` com `KSPROPSETID_BtAudio` (`ONESHOT_RECONNECT` / `ONESHOT_DISCONNECT`), o mesmo mecanismo do botão "Conectar" do Windows |
 | Conectar / desconectar outros | `BluetoothSetServiceState` (`bthprops.cpl`) |
@@ -274,7 +291,8 @@ BtTray/
 │   ├── PopupForm.cs     # Painel (flyout) desenhado manualmente
 │   ├── Bluetooth.cs     # Enumeração, bateria, conectar/desconectar (P/Invoke)
 │   ├── BatteryAlerts.cs # Regras dos avisos de bateria fraca (20%) e crítica (10%)
-│   └── Theme.cs         # Cores claro/escuro, cores da barra de bateria, glifos e ícone da bandeja
+│   ├── PinnedIcons.cs   # Ícones dos dispositivos fixados na barra de tarefas e a lista salva deles
+│   └── Theme.cs         # Cores claro/escuro, cores da barra de bateria, glifos e ícones da bandeja
 ├── test/
 │   ├── TestMain.cs      # Ferramenta de diagnóstico em linha de comando
 │   ├── PreviewMain.cs   # Prévia do painel e teste dos alertas

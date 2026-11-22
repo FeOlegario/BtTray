@@ -9,8 +9,8 @@ using Microsoft.Win32;
 
 [assembly: System.Reflection.AssemblyTitle("BtTray - Bluetooth na bandeja")]
 [assembly: System.Reflection.AssemblyProduct("BtTray")]
-[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.0.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.1.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.1.0.0")]
 
 namespace BtTray
 {
@@ -59,6 +59,9 @@ namespace BtTray
         readonly Queue<BatteryAlert> alertQueue = new Queue<BatteryAlert>();
         readonly System.Windows.Forms.Timer alertTimer = new System.Windows.Forms.Timer();
 
+        readonly PinnedIcons pinnedIcons = new PinnedIcons();
+        readonly List<Pin> pins = PinStore.Load();
+
         int refreshing;            // 0/1, interlocked
         volatile bool refreshAgain;
         bool? iconConnected;
@@ -79,6 +82,11 @@ namespace BtTray
                 UpdatePollInterval();
             };
             popup.DeviceChanged += delegate { debounce.Stop(); debounce.Start(); };
+            popup.PinRequested += TogglePin;
+            foreach (Pin p in pins) popup.Pinned.Add(p.Address);
+            pinnedIcons.OpenRequested += OnIconClick;
+            pinnedIcons.UnpinRequested += Unpin;
+            pinnedIcons.Update(pins, devices);
 
             startupItem = new MenuItem("Iniciar com o Windows", delegate { SetStartup(!startupItem.Checked); });
             startupItem.Checked = IsStartup();
@@ -98,11 +106,7 @@ namespace BtTray
             SetTrayIcon(false);
             tray.MouseClick += delegate (object o, MouseEventArgs e)
             {
-                if (e.Button != MouseButtons.Left) return;
-                if (popup.Visible) { popup.Hide(); return; }
-                // clicking the icon while the flyout is open first deactivates (hides) it; don't reopen it
-                if ((DateTime.Now - popup.LastHidden).TotalMilliseconds < 250) return;
-                ShowPopup();
+                if (e.Button == MouseButtons.Left) OnIconClick();
             };
             tray.Visible = true;
 
@@ -126,8 +130,21 @@ namespace BtTray
             if (e.Category == UserPreferenceCategory.General || e.Category == UserPreferenceCategory.VisualStyle)
             {
                 iconConnected = null;
-                popup.BeginInvoke((MethodInvoker)delegate { SetTrayIcon(AnyConnected()); });
+                popup.BeginInvoke((MethodInvoker)delegate
+                {
+                    SetTrayIcon(AnyConnected());
+                    pinnedIcons.Invalidate();
+                    pinnedIcons.Update(pins, devices);
+                });
             }
+        }
+
+        void OnIconClick()
+        {
+            if (popup.Visible) { popup.Hide(); return; }
+            // clicking the icon while the flyout is open first deactivates (hides) it; don't reopen it
+            if ((DateTime.Now - popup.LastHidden).TotalMilliseconds < 250) return;
+            ShowPopup();
         }
 
         void ShowPopup()
@@ -180,6 +197,7 @@ namespace BtTray
             popup.SetDevices(devices, busyText, errors);
             UpdateTooltip();
             SetTrayIcon(AnyConnected());
+            UpdatePins();
             UpdatePollInterval();
 
             foreach (BatteryAlert a in batteryAlerts.Check(devices)) alertQueue.Enqueue(a);
@@ -237,6 +255,43 @@ namespace BtTray
         {
             errors[addr] = msg;
             errorUntil[addr] = DateTime.Now.AddSeconds(8);
+        }
+
+        // ---------------------------------------------------------------- devices pinned to the taskbar
+        void TogglePin(BtDevice d)
+        {
+            if (popup.Pinned.Contains(d.AddressHex)) { Unpin(d.AddressHex); return; }
+            bool first = !PinStore.Exists;
+            pins.Add(new Pin { Address = d.AddressHex, Name = d.Name, Kind = d.Kind });
+            popup.Pinned.Add(d.AddressHex);
+            PinStore.Save(pins);
+            pinnedIcons.Update(pins, devices);
+            popup.Invalidate();
+            if (first)
+                tray.ShowBalloonTip(8000, "Dispositivo fixado na barra de tarefas",
+                    "Se o ícone dele ficar escondido em \"Mostrar ícones ocultos\" (^), arraste-o para a barra de tarefas.", ToolTipIcon.Info);
+        }
+
+        void Unpin(string addr)
+        {
+            pins.RemoveAll(p => p.Address == addr);
+            popup.Pinned.Remove(addr);
+            PinStore.Save(pins);
+            pinnedIcons.Update(pins, devices);
+            popup.Invalidate();
+        }
+
+        void UpdatePins()
+        {
+            // keep the remembered name and kind current, so the icon is right even while the device is absent
+            bool changed = false;
+            foreach (Pin p in pins)
+            {
+                BtDevice d = devices.Find(x => x.AddressHex == p.Address);
+                if (d != null && (d.Name != p.Name || d.Kind != p.Kind)) { p.Name = d.Name; p.Kind = d.Kind; changed = true; }
+            }
+            if (changed) PinStore.Save(pins);
+            pinnedIcons.Update(pins, devices);
         }
 
         // ---------------------------------------------------------------- tray icon & tooltip
@@ -307,6 +362,7 @@ namespace BtTray
             SystemEvents.UserPreferenceChanged -= OnPrefsChanged;
             tray.Visible = false;
             tray.Dispose();
+            pinnedIcons.Dispose();
             poll.Dispose(); debounce.Dispose(); trim.Dispose(); alertTimer.Dispose();
             popup.Dispose();
             base.ExitThreadCore();

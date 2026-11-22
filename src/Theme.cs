@@ -2,7 +2,6 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
@@ -88,7 +87,8 @@ namespace BtTray
         // ---------------------------------------------------------------- glyphs
         public const string GBluetooth = "", GHeadphones = "", GHeadset = "", GSpeaker = "",
                             GKeyboard = "", GMouse = "", GPhone = "", GComputer = "",
-                            GGamepad = "", GRefresh = "", GSettings = "";
+                            GGamepad = "", GRefresh = "", GSettings = "",
+                            GPin = "", GPinned = "";
 
         public static string Glyph(DeviceKind k)
         {
@@ -144,24 +144,115 @@ namespace BtTray
 
         public static Icon MakeTrayIcon(int size, bool anyConnected)
         {
-            Color c = TaskbarDark() ? Color.White : Color.Black;
-            if (!anyConnected) c = Color.FromArgb(150, c);
-            using (var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb))
+            using (var bmp = RenderTrayIcon(size, anyConnected, TaskbarDark()))
             {
-                using (var g = Graphics.FromImage(bmp))
-                using (var f = new Font(IconFont, size * 0.82f, GraphicsUnit.Pixel))
-                using (var b = new SolidBrush(c))
-                using (var sf = new StringFormat(StringFormat.GenericTypographic))
-                {
-                    g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                    sf.Alignment = StringAlignment.Center;
-                    sf.LineAlignment = StringAlignment.Center;
-                    g.DrawString(GBluetooth, f, b, new RectangleF(0, 0, size, size + size * 0.06f), sf);
-                }
                 IntPtr h = bmp.GetHicon();
                 var icon = (Icon)Icon.FromHandle(h).Clone();
                 DestroyIcon(h);
                 return icon;
+            }
+        }
+
+        /// <summary>App icon: the Bluetooth glyph, a bit faded when nothing is connected. Fitted to its outline and, at
+        /// 16-20 px, slightly thickened: otherwise its 1 px strokes come out grey on the taskbar.</summary>
+        public static Bitmap RenderTrayIcon(int size, bool anyConnected, bool darkTaskbar)
+        {
+            Color c = darkTaskbar ? Color.White : Color.Black;
+            var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                float m = size * 0.06f;
+                FillFitted(g, GBluetooth, IconFont, FontStyle.Regular, new RectangleF(m, m, size - 2 * m, size - 2 * m),
+                           c, Math.Max(0f, 0.3f - (size - 16) * 0.04f), false);   // only small sizes need it
+            }
+            if (!anyConnected) Fade(bmp, 150);
+            return bmp;
+        }
+
+        /// <summary>
+        /// Icon for a device pinned to the taskbar: the device glyph on top and the battery percentage below it.
+        /// Without a battery reading only the glyph is drawn; a disconnected device is drawn dimmed.
+        /// </summary>
+        public static Icon MakeDeviceIcon(int size, DeviceKind kind, bool connected, int battery)
+        {
+            using (var bmp = RenderDeviceIcon(size, kind, connected, battery, TaskbarDark()))
+            {
+                IntPtr h = bmp.GetHicon();
+                var icon = (Icon)Icon.FromHandle(h).Clone();
+                DestroyIcon(h);
+                return icon;
+            }
+        }
+
+        public static Bitmap RenderDeviceIcon(int size, DeviceKind kind, bool connected, int battery, bool darkTaskbar)
+        {
+            Color fg = darkTaskbar ? Color.White : Color.Black;
+            // The icon font's strokes are about 1 px wide at this size and would come out grey after antialiasing,
+            // so the glyph is fitted to its real outline (not the font's em box) and thickened with a stroke.
+            // Glyphs with fine inner details (keyboard keys, speaker cones) get little or no stroke to stay readable.
+            float stroke = size / 16f * (kind == DeviceKind.Keyboard ? 0f : kind == DeviceKind.Speaker ? 0.2f : 0.4f);
+            bool showBattery = connected && battery >= 0;
+            var bmp = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                if (!showBattery)
+                {
+                    float m = size * 0.06f;
+                    FillFitted(g, Glyph(kind), IconFont, FontStyle.Regular, new RectangleF(m, m, size - 2 * m, size - 2 * m),
+                               fg, stroke, false);
+                }
+                else
+                {
+                    battery = Math.Max(0, Math.Min(100, battery));
+                    // glyph in the top half, number below it
+                    FillFitted(g, Glyph(kind), IconFont, FontStyle.Regular, new RectangleF(0, 0, size, size * 0.50f), fg, stroke, false);
+                    float top = size * 0.56f;
+                    Color numColor = battery < BatteryLow ? BatteryColor(battery, darkTaskbar) : fg;
+                    FillFitted(g, battery.ToString(), "Segoe UI", FontStyle.Bold, new RectangleF(0, top, size, size - top), numColor, 0f, true);
+                }
+            }
+            if (!connected) Fade(bmp, 150);
+            return bmp;
+        }
+
+        /// <summary>Scales the alpha of every pixel (fill and stroke overlap, so a translucent colour would show seams).</summary>
+        static void Fade(Bitmap bmp, int alpha)
+        {
+            for (int y = 0; y < bmp.Height; y++)
+                for (int x = 0; x < bmp.Width; x++)
+                {
+                    Color p = bmp.GetPixel(x, y);
+                    if (p.A > 0) bmp.SetPixel(x, y, Color.FromArgb(p.A * alpha / 255, p));
+                }
+        }
+
+        /// <summary>Draws text scaled to fill the box as far as its outline allows, centred (or bottom-aligned).</summary>
+        static void FillFitted(Graphics g, string text, string font, FontStyle style, RectangleF box, Color c, float stroke, bool bottom)
+        {
+            using (var path = new GraphicsPath())
+            using (var family = new FontFamily(font))
+            {
+                path.AddString(text, family, (int)style, 100f, PointF.Empty, StringFormat.GenericTypographic);
+                RectangleF r = path.GetBounds();
+                if (r.Width <= 0 || r.Height <= 0) return;
+                float scale = Math.Min((box.Width * 0.98f - stroke) / r.Width, (box.Height - stroke) / r.Height);
+                float w = r.Width * scale, h = r.Height * scale;
+                float y = bottom ? box.Bottom - stroke / 2f - h : box.Y + (box.Height - h) / 2f;
+                using (var m = new Matrix())
+                {
+                    m.Translate(box.X + (box.Width - w) / 2f, y);
+                    m.Scale(scale, scale);
+                    m.Translate(-r.X, -r.Y);
+                    path.Transform(m);
+                }
+                using (var b = new SolidBrush(c)) g.FillPath(b, path);
+                if (stroke > 0)
+                    using (var p = new Pen(c, stroke) { LineJoin = LineJoin.Round }) g.DrawPath(p, path);
             }
         }
 

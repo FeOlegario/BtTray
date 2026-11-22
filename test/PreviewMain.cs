@@ -36,6 +36,7 @@ namespace BtTray
             string basePath = args.Length > 0 ? args[0] : "preview.png";
             Render(list, false, basePath.Replace(".png", "-claro.png"));
             Render(list, true, basePath.Replace(".png", "-escuro.png"));
+            RenderPinnedIcons(basePath.Replace(".png", "-icones.png"));
 
             // 3) optional: show the two real Windows notifications
             if (Array.IndexOf(args, "--notificar") >= 0)
@@ -67,6 +68,7 @@ namespace BtTray
             {
                 var field = typeof(PopupForm).GetField("MaxRows", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 field.SetValue(f, list.Count);
+                f.Pinned.Add(list[0].AddressHex);   // show both states of the pin button
                 f.SetDevices(list, new Dictionary<string, string>(), new Dictionary<string, string>());
                 using (var bmp = new Bitmap(f.Width, f.Height))
                 {
@@ -74,6 +76,45 @@ namespace BtTray
                     bmp.Save(path);
                     Console.WriteLine("Prévia salva em " + path);
                 }
+            }
+        }
+
+        // Taskbar icons of pinned devices at the common tray sizes (100% to 200% scaling), enlarged 6x,
+        // over a light and a dark taskbar. The last two columns are the app icon, with and without a connection.
+        static void RenderPinnedIcons(string path)
+        {
+            int[] sizes = { 16, 20, 24, 32 };
+            var cases = new[]
+            {
+                new { Kind = DeviceKind.Headphones, Connected = true, Battery = 100 },
+                new { Kind = DeviceKind.Mouse, Connected = true, Battery = 85 },
+                new { Kind = DeviceKind.Keyboard, Connected = true, Battery = 42 },
+                new { Kind = DeviceKind.Headphones, Connected = true, Battery = 15 },
+                new { Kind = DeviceKind.Gamepad, Connected = true, Battery = 7 },
+                new { Kind = DeviceKind.Speaker, Connected = true, Battery = -1 },
+                new { Kind = DeviceKind.Headphones, Connected = false, Battery = -1 },
+            };
+            const int zoom = 6, gap = 12, cell = 32 * zoom + gap;
+            int band = sizes.Length * cell + gap;
+            int cols = cases.Length + 2;
+            using (var bmp = new Bitmap(cols * cell + gap, band * 2))
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+                for (int dark = 0; dark < 2; dark++)
+                {
+                    using (var bg = new SolidBrush(dark == 1 ? Color.FromArgb(32, 32, 32) : Color.FromArgb(238, 238, 238)))
+                        g.FillRectangle(bg, 0, dark * band, bmp.Width, band);
+                    for (int si = 0; si < sizes.Length; si++)
+                        for (int ci = 0; ci < cols; ci++)
+                            using (var ic = ci < cases.Length
+                                ? Theme.RenderDeviceIcon(sizes[si], cases[ci].Kind, cases[ci].Connected, cases[ci].Battery, dark == 1)
+                                : Theme.RenderTrayIcon(sizes[si], ci == cases.Length, dark == 1))
+                                g.DrawImage(ic, new Rectangle(gap + ci * cell, dark * band + gap + si * cell, sizes[si] * zoom, sizes[si] * zoom));
+                }
+                bmp.Save(path);
+                Console.WriteLine("Prévia dos ícones fixos salva em " + path);
             }
         }
     }
