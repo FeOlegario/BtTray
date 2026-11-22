@@ -1,203 +1,210 @@
 <div align="center">
 
+**English** · [Português](README.pt-BR.md)
+
 # BtTray
 
-**Conecte e desconecte seus dispositivos Bluetooth com um clique, direto da bandeja do Windows.**
+**Connect and disconnect your Bluetooth devices with one click, right from the Windows system tray.**
 
-![Windows 11](https://img.shields.io/badge/testado%20no-Windows%2011-0078D4?logo=windows&logoColor=white)
+![Windows 11](https://img.shields.io/badge/tested%20on-Windows%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~59%20KB-success)
-![RAM](https://img.shields.io/badge/RAM%20ociosa-~2%20MB-success)
-![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-yellow)
+![Size](https://img.shields.io/badge/executable-~59%20KB-success)
+![RAM](https://img.shields.io/badge/idle%20RAM-~2%20MB-success)
+![MIT License](https://img.shields.io/badge/license-MIT-yellow)
 
-<img src="docs/screenshot.png" alt="Painel do BtTray mostrando um fone conectado com a barra de bateria verde em 100%" width="480">
+<img src="docs/screenshot.png" alt="BtTray panel showing a connected headset with a green battery bar at 100%" width="480">
 
 </div>
 
 ---
 
-## Sumário
+> [!NOTE]
+> The BtTray interface is in **Brazilian Portuguese**. In this document, interface labels are shown in Portuguese followed by their translation, e.g. **Conectar** (*Connect*).
 
-- [Por que o BtTray?](#por-que-o-bttray)
-- [Recursos](#recursos)
-- [Requisitos](#requisitos)
-- [Instalação](#instalação)
-- [Como usar](#como-usar)
-- [Compatibilidade de dispositivos](#compatibilidade-de-dispositivos)
-- [Bateria e alertas](#bateria-e-alertas)
-- [Desempenho](#desempenho)
-- [Privacidade](#privacidade)
-- [Compilando a partir do código](#compilando-a-partir-do-código)
-- [Como funciona](#como-funciona)
-- [Estrutura do projeto](#estrutura-do-projeto)
-- [Solução de problemas](#solução-de-problemas)
-- [Contribuindo](#contribuindo)
-- [Licença](#licença)
+## Contents
+
+- [Why BtTray?](#why-bttray)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Device compatibility](#device-compatibility)
+- [Battery and alerts](#battery-and-alerts)
+- [Performance](#performance)
+- [Privacy](#privacy)
+- [Building from source](#building-from-source)
+- [How it works](#how-it-works)
+- [Project structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## Por que o BtTray?
+## Why BtTray?
 
-No Windows, conectar um fone que já está emparelhado exige vários cliques: abrir as Configurações, entrar em *Bluetooth e dispositivos*, localizar o aparelho e clicar em *Conectar*. O BtTray reduz isso a **dois cliques**: um no ícone da bandeja e outro no botão do dispositivo.
+On Windows, connecting a headset that is already paired takes several clicks: open Settings, go to *Bluetooth & devices*, find the device and click *Connect*. BtTray cuts that down to **two clicks**: one on the tray icon and one on the device's button.
 
-Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em uso.
+It is designed to be **small, fast and invisible** while you are not using it.
 
-## Recursos
+## Features
 
-- 📋 **Lista todos os dispositivos emparelhados**, um embaixo do outro, com os conectados primeiro.
-- 🔌 **Conecta e desconecta com um clique.** O botão mostra "Aguarde…" enquanto a operação acontece.
-- 🔋 **Barra de bateria colorida** que diminui com a carga e muda de cor: verde, amarelo/laranja e vermelho. Aparece quando o dispositivo informa a bateria ao Windows.
-- 🔔 **Alertas de bateria fraca** no Windows aos **20%** e aos **10%**.
-- 📌 **Fixe um dispositivo na barra de tarefas**: ele ganha um ícone próprio na bandeja com o desenho do tipo de aparelho (fone, mouse, teclado…) e a **porcentagem da bateria**, sempre à vista.
-- 🖱️ **Vive na bandeja do sistema** e funciona dentro de **"Mostrar ícones ocultos" (^)**.
-- 🌗 **Segue o tema do Windows**: claro ou escuro, com cantos arredondados.
-- 💬 **Dica rápida no ícone**: passe o mouse para ver o que está conectado e a bateria.
-- 🚀 **Opção "Iniciar com o Windows"** no menu do botão direito.
-- 🪶 **Ultraleve**: um único `.exe` de ~59 KB, sem instalador e sem dependências extras.
+- 📋 **Lists all paired devices**, one below the other, with connected ones first.
+- 🔌 **Connects and disconnects with one click.** The button shows "Aguarde…" (*Please wait…*) while the operation is in progress.
+- 🔋 **Colored battery bar** that shrinks with the charge and changes color: green, yellow/orange and red. Shown when the device reports its battery to Windows.
+- 🔔 **Low battery alerts** from Windows at **20%** and **10%**.
+- 📌 **Pin a device to the taskbar**: it gets its own tray icon showing the device type (headphones, mouse, keyboard…) and its **battery percentage**, always in view.
+- 🖱️ **Lives in the system tray** and works from inside **"Show hidden icons" (^)**.
+- 🌗 **Follows the Windows theme**: light or dark, with rounded corners.
+- 💬 **Quick tooltip on the icon**: hover to see what is connected and the battery level.
+- 🚀 **"Iniciar com o Windows"** (*Start with Windows*) option in the right-click menu.
+- 🪶 **Ultralight**: a single ~59 KB `.exe`, no installer and no extra dependencies.
 
-## Requisitos
+## Requirements
 
-| Item | Requisito |
+| Item | Requirement |
 |---|---|
-| Sistema | Windows 11 (testado). O Windows 10 deve funcionar, sem os cantos arredondados, mas ainda não foi testado. |
-| Runtime | .NET Framework 4.8 (já vem instalado no Windows 10 1903+ e no Windows 11) |
-| Hardware | Adaptador Bluetooth |
-| Permissões | Usuário comum. Administrador **não** é necessário para fones e caixas de som. |
+| OS | Windows 11 (tested). Windows 10 should work, without rounded corners, but has not been tested yet. |
+| Runtime | .NET Framework 4.8 (already installed on Windows 10 1903+ and Windows 11) |
+| Hardware | Bluetooth adapter |
+| Permissions | Standard user. Administrator rights are **not** needed for headsets and speakers. |
 
-## Instalação
+## Installation
 
-### Opção 1: baixar o executável
+### Option 1: download the executable
 
-1. Acesse a página de [**Releases**](https://github.com/FeOlegario/BtTray/releases) e baixe o `BtTray.exe` mais recente.
-2. Coloque o arquivo em uma pasta permanente, por exemplo `C:\Programas\BtTray\`.
-3. Dê dois cliques para executar. O ícone de Bluetooth aparece na bandeja.
+1. Go to the [**Releases**](https://github.com/FeOlegario/BtTray/releases) page and download the latest `BtTray.exe`.
+2. Put the file in a permanent folder, for example `C:\Programs\BtTray\`.
+3. Double-click it to run. The Bluetooth icon appears in the system tray.
 
 > [!NOTE]
-> O executável não é assinado digitalmente. Por isso, o Windows SmartScreen pode exibir um aviso na primeira execução. Clique em **Mais informações → Executar assim mesmo**. Se preferir, [compile você mesmo](#compilando-a-partir-do-código) a partir do código.
+> The executable is not digitally signed, so Windows SmartScreen may show a warning the first time you run it. Click **More info → Run anyway**. If you prefer, [build it yourself](#building-from-source) from source.
 
-### Opção 2: compilar do código
+### Option 2: build from source
 
-Veja [Compilando a partir do código](#compilando-a-partir-do-código). Leva poucos segundos e não exige instalar nada.
+See [Building from source](#building-from-source). It takes a few seconds and requires installing nothing.
 
-## Como usar
+## Usage
 
-| Ação | Resultado |
+| Action | Result |
 |---|---|
-| **Clique esquerdo** no ícone | Abre ou fecha o painel de dispositivos |
-| Botão **Conectar** / **Desconectar** | Altera a conexão do dispositivo |
-| Alfinete **📌** ao lado do botão | Fixa ou desafixa o dispositivo na barra de tarefas |
-| Ícone **⟳** no painel ou tecla **F5** | Atualiza a lista |
-| Tecla **Esc** ou clique fora | Fecha o painel |
-| **Clique direito** no ícone | Menu: Abrir, Atualizar, Iniciar com o Windows, Configurações de Bluetooth e Sair |
-| Passar o mouse sobre o ícone | Mostra os dispositivos conectados e a bateria |
+| **Left-click** the icon | Opens or closes the device panel |
+| **Conectar** / **Desconectar** button (*Connect* / *Disconnect*) | Changes the device connection |
+| **📌** pin next to the button | Pins or unpins the device to the taskbar |
+| **⟳** icon in the panel or **F5** key | Refreshes the list |
+| **Esc** key or click outside | Closes the panel |
+| **Right-click** the icon | Menu: Abrir (*Open*), Atualizar (*Refresh*), Iniciar com o Windows (*Start with Windows*), Configurações de Bluetooth (*Bluetooth settings*) and Sair (*Exit*) |
+| Hover over the icon | Shows the connected devices and their battery |
 
-**Deixar o ícone sempre visível:** por padrão, o Windows pode colocar o ícone dentro de **Mostrar ícones ocultos (^)**. Para fixá-lo na barra de tarefas, arraste o ícone para fora dessa área ou ative-o em *Configurações → Personalização → Barra de tarefas → Outros ícones da bandeja do sistema*.
+**Keep the icon always visible:** by default, Windows may put the icon inside **Show hidden icons (^)**. To keep it on the taskbar, drag it out of that area or turn it on in *Settings → Personalization → Taskbar → Other system tray icons*.
 
-### Dispositivos fixados na barra de tarefas
+### Devices pinned to the taskbar
 
-Clique no **alfinete** ao lado do botão de um dispositivo para fixá-lo. Ele ganha um ícone só dele na bandeja:
+Click the **pin** next to a device's button to pin it. It gets a tray icon of its own:
 
-- Em cima, o **desenho do tipo de dispositivo** (fone, caixa de som, mouse, teclado, controle…); embaixo, a **porcentagem da bateria**.
-- Abaixo de 20%, o número ganha a cor da bateria (amarelo/laranja e depois vermelho).
-- Se o dispositivo não informa a bateria, aparece só o desenho. Desconectado, o desenho fica apagado.
-- Passe o mouse para ver o nome e a bateria. Clique para abrir o painel. Com o botão direito, escolha **Desafixar da barra de tarefas**.
-- Os dispositivos fixados são lembrados ao reiniciar o BtTray. A bateria é atualizada a cada 60 s com o painel fechado.
+- At the top, a **drawing of the device type** (headphones, speaker, mouse, keyboard, gamepad…); below it, the **battery percentage**.
+- Below 20%, the number takes the battery color (yellow/orange, then red).
+- If the device does not report its battery, only the drawing is shown. When disconnected, the drawing is faded.
+- Hover to see the name and battery. Click to open the panel. Right-click and choose **Desafixar da barra de tarefas** (*Unpin from taskbar*).
+- Pinned devices are remembered when BtTray restarts. The battery is refreshed every 60 s while the panel is closed.
 
 > [!TIP]
-> O Windows 11 costuma colocar ícones novos dentro de **Mostrar ícones ocultos (^)**. Arraste o ícone do dispositivo para a barra de tarefas (ou ative-o em *Configurações → Personalização → Barra de tarefas → Outros ícones da bandeja do sistema*). O Windows lembra essa escolha para cada dispositivo, mesmo se você desafixar e fixar de novo.
+> Windows 11 usually puts new icons inside **Show hidden icons (^)**. Drag the device icon onto the taskbar (or turn it on in *Settings → Personalization → Taskbar → Other system tray icons*). Windows remembers this choice for each device, even if you unpin and pin it again.
 
-**Indicador do ícone:** o ícone fica **mais apagado** quando nenhum dispositivo está conectado.
+**Icon indicator:** the icon is **faded** when no device is connected.
 
-**Abrir o painel por um atalho:** executar o `BtTray.exe` de novo (pelo menu Iniciar ou por um atalho) não abre uma segunda cópia. Em vez disso, mostra o painel da instância que já está rodando.
+**Open the panel from a shortcut:** running `BtTray.exe` again (from the Start menu or a shortcut) does not start a second copy. Instead, it shows the panel of the instance that is already running.
 
-## Compatibilidade de dispositivos
+## Device compatibility
 
-| Tipo de dispositivo | Listar | Status | Bateria | Conectar / Desconectar |
+| Device type | List | Status | Battery | Connect / Disconnect |
 |---|:---:|:---:|:---:|:---:|
-| 🎧 Fones, headsets e caixas de som (Bluetooth clássico) | ✅ | ✅ | ✅¹ | ✅ |
-| ⌨️ Teclados, mouses e outros (Bluetooth clássico) | ✅ | ✅ | ⚠️² | ⚠️³ |
-| 📡 Dispositivos Bluetooth LE (Low Energy) | ✅ | ✅ | ⚠️² | ❌⁴ |
+| 🎧 Headphones, headsets and speakers (Bluetooth Classic) | ✅ | ✅ | ✅¹ | ✅ |
+| ⌨️ Keyboards, mice and others (Bluetooth Classic) | ✅ | ✅ | ⚠️² | ⚠️³ |
+| 📡 Bluetooth LE (Low Energy) devices | ✅ | ✅ | ⚠️² | ❌⁴ |
 
-**Legenda:** ✅ testado e funcionando · ⚠️ implementado, mas não testado ou com limitações · ❌ não suportado
+**Legend:** ✅ tested and working · ⚠️ implemented, but untested or with limitations · ❌ not supported
 
-1. A bateria aparece quando o fone a informa ao Windows pelo perfil de chamadas (Hands-Free), o mesmo dado mostrado em *Configurações → Bluetooth e dispositivos*.
-2. **Não testado.** O app lê a bateria pela mesma propriedade usada para os fones, mas muitos teclados, mouses e dispositivos LE informam a bateria de outro jeito. Nesses casos, a porcentagem não aparece.
-3. **Não testado.** Funciona ligando e desligando os serviços Bluetooth do dispositivo e pode exigir **executar como administrador**. Leia o aviso abaixo.
-4. O Windows não permite que aplicativos conectem ou desconectem dispositivos LE. Eles se conectam sozinhos quando estão ligados e por perto.
+1. The battery is shown when the headset reports it to Windows through the calling profile (Hands-Free), the same value shown in *Settings → Bluetooth & devices*.
+2. **Untested.** The app reads the battery from the same property used for headsets, but many keyboards, mice and LE devices report their battery in a different way. In those cases, the percentage is not shown.
+3. **Untested.** It works by turning the device's Bluetooth services off and on, and may require **running as administrator**. Read the warning below.
+4. Windows does not let apps connect or disconnect LE devices. They connect on their own when they are on and nearby.
 
 > [!WARNING]
-> **Teclados, mouses e outros dispositivos que não são de áudio:** ao clicar em **Desconectar**, o BtTray **desativa os serviços Bluetooth** do dispositivo. Eles **continuam desativados**, mesmo depois de reiniciar o PC, até você clicar em **Conectar** no BtTray.
+> **Keyboards, mice and other non-audio devices:** when you click **Desconectar** (*Disconnect*), BtTray **disables the device's Bluetooth services**. They **stay disabled**, even after restarting the PC, until you click **Conectar** (*Connect*) in BtTray.
 >
-> Se você apagar o BtTray com algum dispositivo nesse estado, reative-o pelo Windows:
-> 1. Pressione `Win + R`, digite `control printers` e pressione Enter.
-> 2. Clique com o botão direito no dispositivo e escolha **Propriedades → Serviços**.
-> 3. Marque todos os serviços e clique em **OK**.
+> If you delete BtTray while a device is in that state, re-enable it through Windows:
+> 1. Press `Win + R`, type `control printers` and press Enter.
+> 2. Right-click the device and choose **Properties → Services**.
+> 3. Check all services and click **OK**.
 >
-> Outra opção é remover o dispositivo e emparelhá-lo de novo em *Configurações → Bluetooth e dispositivos*.
+> Alternatively, remove the device and pair it again in *Settings → Bluetooth & devices*.
 
-## Bateria e alertas
+## Battery and alerts
 
-Cada dispositivo conectado que informa a bateria mostra uma **barra de 0% a 100%**. A barra diminui conforme a carga cai e muda de cor:
+Every connected device that reports its battery shows a **0% to 100% bar**. The bar shrinks as the charge drops and changes color:
 
-| Carga | Cor da barra |
+| Charge | Bar color |
 |---|---|
-| **20% a 100%** | 🟢 Verde: mais forte perto de 100% e mais claro perto de 20% |
-| **11% a 19%** | 🟡→🟠 Do amarelo (19%) ao laranja (11%) |
-| **10% ou menos** | 🔴 Vermelho |
+| **20% to 100%** | 🟢 Green: deeper near 100% and lighter near 20% |
+| **11% to 19%** | 🟡→🟠 From yellow (19%) to orange (11%) |
+| **10% or less** | 🔴 Red |
 
-Abaixo de 20%, o número da porcentagem também ganha a cor da barra.
+Below 20%, the percentage number also takes the bar color.
 
 <div align="center">
-<img src="docs/cores-bateria.png" alt="Barras de bateria de 100% a 4% nos temas claro e escuro" width="600">
+<img src="docs/cores-bateria.png" alt="Battery bars from 100% to 4% in the light and dark themes" width="600">
 </div>
 
-### Notificações
+### Notifications
 
-O BtTray avisa pelo Windows quando a bateria fica baixa:
+BtTray warns you through Windows when the battery gets low:
 
-| Quando | Notificação |
+| When | Notification |
 |---|---|
-| Chega a **20%** | ⚠️ **Bateria fraca:** "*Dispositivo* está com 20% de bateria. Seria bom carregar o dispositivo." |
-| Chega a **10%** | ⛔ **Bateria crítica:** "*Dispositivo* está com apenas 10% de bateria. Carregue agora para não perder a conexão." |
+| Reaches **20%** | ⚠️ **Bateria fraca** (*Low battery*): "*Device* is at 20% battery. It would be a good idea to charge it." |
+| Reaches **10%** | ⛔ **Bateria crítica** (*Critical battery*): "*Device* is at only 10% battery. Charge it now so you don't lose the connection." |
 
-- Cada aviso aparece **uma única vez** por descarga, mesmo que a leitura oscile entre dois valores (por exemplo, 20% → 19% → 20%).
-- Os avisos voltam a valer depois que o dispositivo é carregado: o de 20% quando a bateria passa de 25%, e o de 10% quando passa de 15%.
-- Se o BtTray for aberto com um dispositivo já abaixo desses níveis, o aviso correspondente aparece logo.
-- Com o painel fechado, a bateria é verificada a cada 60 s, então o aviso pode levar até cerca de 1 minuto para aparecer.
+(The notification text is shown in Portuguese; the translation is above.)
+
+- Each warning appears **only once** per discharge, even if the reading flips between two values (for example, 20% → 19% → 20%).
+- The warnings are re-armed after the device is charged: the 20% one when the battery goes above 25%, and the 10% one when it goes above 15%.
+- If BtTray starts with a device already below those levels, the matching warning appears right away.
+- With the panel closed, the battery is checked every 60 s, so a warning may take up to about 1 minute to appear.
 
 > [!NOTE]
-> As notificações seguem as regras do Windows. Elas não aparecem se o modo **Não incomodar** estiver ativo ou se as notificações do BtTray estiverem desligadas em *Configurações → Sistema → Notificações*.
+> Notifications follow the Windows rules. They do not appear if **Do not disturb** is on or if BtTray notifications are turned off in *Settings → System → Notifications*.
 
-## Desempenho
+## Performance
 
-Medições em um Windows 11 com um fone Bluetooth emparelhado:
+Measured on Windows 11 with one paired Bluetooth headset:
 
-| Métrica | Valor |
+| Metric | Value |
 |---|---|
-| Tamanho do executável | ~59 KB |
-| RAM em uso com o painel fechado | ~2,3 MB |
-| CPU ocioso | 0% (0 ms em 15 s) |
-| Tempo para listar os dispositivos | ~120 ms (em segundo plano) |
-| Conectar / desconectar um fone | ~0,1 s / ~0,4 s para enviar o comando |
+| Executable size | ~59 KB |
+| RAM in use with the panel closed | ~2.3 MB |
+| Idle CPU | 0% (0 ms in 15 s) |
+| Time to list devices | ~120 ms (in the background) |
+| Connect / disconnect a headset | ~0.1 s / ~0.4 s to send the command |
 
-Para manter o consumo baixo:
-- Toda a busca de dispositivos roda **fora da thread da interface**, para que o painel nunca trave.
-- Com o painel fechado, o app atualiza só **a cada 60 s** ou quando o Windows avisa que algum dispositivo mudou.
-- A interface é desenhada manualmente, em vez de usar dezenas de controles.
-- A memória é **liberada sempre que o painel fecha**.
+To keep resource use low:
+- All device scanning runs **off the UI thread**, so the panel never freezes.
+- With the panel closed, the app refreshes only **every 60 s** or when Windows reports that a device changed.
+- The interface is drawn by hand instead of using dozens of controls.
+- Memory is **released every time the panel closes**.
 
-## Privacidade
+## Privacy
 
-- ❌ **Não acessa a internet**: não há telemetria, atualizações automáticas ou envio de dados.
-- ❌ **Não coleta informações** sobre você ou seus dispositivos.
-- ✅ Só grava em três lugares no seu computador:
-  - `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\BtTray`, **somente** se você ativar *Iniciar com o Windows*.
-  - `%LOCALAPPDATA%\BtTray\servicos-desativados.txt`, **somente** ao desconectar um dispositivo não-áudio, para saber quais serviços reativar depois.
-  - `%LOCALAPPDATA%\BtTray\fixados.txt`, **somente** se você fixar um dispositivo na barra de tarefas (endereço, tipo e nome dos dispositivos fixados).
+- ❌ **No internet access**: no telemetry, automatic updates or data sending.
+- ❌ **Collects no information** about you or your devices.
+- ✅ Writes to only three places on your computer:
+  - `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\BtTray`, **only** if you turn on *Iniciar com o Windows* (*Start with Windows*).
+  - `%LOCALAPPDATA%\BtTray\servicos-desativados.txt`, **only** when you disconnect a non-audio device, to know which services to re-enable later.
+  - `%LOCALAPPDATA%\BtTray\fixados.txt`, **only** if you pin a device to the taskbar (address, type and name of the pinned devices).
 
-## Compilando a partir do código
+## Building from source
 
-Não é preciso Visual Studio nem SDK: o projeto usa o compilador C# que já acompanha o .NET Framework 4.8 no Windows.
+No Visual Studio or SDK needed: the project uses the C# compiler that ships with .NET Framework 4.8 on Windows.
 
 ```powershell
 git clone https://github.com/FeOlegario/BtTray.git
@@ -205,28 +212,28 @@ cd BtTray
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-O executável é gerado em `bin\BtTray.exe`.
+The executable is created at `bin\BtTray.exe`.
 
 > [!TIP]
-> O script também cria o ícone do aplicativo (`app.ico`) se ele não existir.
+> The script also creates the application icon (`app.ico`) if it does not exist.
 
-### Ferramenta de diagnóstico (opcional)
+### Diagnostic tool (optional)
 
-A pasta `test/` tem um utilitário de linha de comando que lista os dispositivos e testa as ações sem abrir a interface:
+The `test/` folder has a command-line utility that lists the devices and tests the actions without opening the interface:
 
 ```powershell
 New-Item -ItemType Directory -Force bin | Out-Null
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 & $csc /nologo /out:bin\bttest.exe src\Bluetooth.cs test\TestMain.cs
 
-.\bin\bttest.exe                 # lista os dispositivos
-.\bin\bttest.exe disconnect 0    # desconecta o dispositivo de índice 0
-.\bin\bttest.exe connect 0       # conecta o dispositivo de índice 0
+.\bin\bttest.exe                 # lists the devices
+.\bin\bttest.exe disconnect 0    # disconnects the device at index 0
+.\bin\bttest.exe connect 0       # connects the device at index 0
 ```
 
-### Prévia da interface e dos alertas (opcional)
+### Interface and alert preview (optional)
 
-O `test/PreviewMain.cs` gera imagens do painel com dispositivos fictícios em vários níveis de bateria, nos temas claro e escuro. Ele também confere as regras dos alertas com leituras simuladas e pode exibir as duas notificações reais:
+`test/PreviewMain.cs` renders images of the panel with fake devices at several battery levels, in the light and dark themes. It also checks the alert rules with simulated readings and can show the two real notifications:
 
 ```powershell
 New-Item -ItemType Directory -Force bin | Out-Null
@@ -234,13 +241,13 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 & $csc /nologo /main:BtTray.PreviewMain /out:bin\preview.exe /win32manifest:app.manifest `
     /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\PreviewMain.cs
 
-.\bin\preview.exe bin\preview.png                # gera preview-claro.png, preview-escuro.png e preview-icones.png
-.\bin\preview.exe bin\preview.png --notificar    # também mostra as notificações de 20% e 10%
+.\bin\preview.exe bin\preview.png                # creates preview-claro.png, preview-escuro.png and preview-icones.png
+.\bin\preview.exe bin\preview.png --notificar    # also shows the 20% and 10% notifications
 ```
 
-### Testes automáticos dos alertas
+### Automated alert tests
 
-O `test/AlertTests.cs` confere as regras dos avisos de bateria (20%, 10%, oscilação e rearme) sem interface e sem Bluetooth. Ele termina com erro se alguma regra falhar:
+`test/AlertTests.cs` checks the battery warning rules (20%, 10%, flickering and re-arming) without UI or Bluetooth. It exits with an error if any rule fails:
 
 ```powershell
 New-Item -ItemType Directory -Force bin | Out-Null
@@ -250,114 +257,119 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 .\bin\alerttests.exe
 ```
 
-### Integração contínua
+### Continuous integration
 
-A cada push (em qualquer branch) e pull request, o workflow `.github/workflows/build.yml` roda o `build.ps1` no Windows, executa os testes dos alertas, compila as ferramentas de `test/` e publica as imagens de prévia do painel como artefato da execução. O `BtTray.exe` de cada execução e as Releases ficam com o `release.yml`, descrito abaixo.
+On every push (to any branch) and pull request, the `.github/workflows/build.yml` workflow runs `build.ps1` on Windows, runs the alert tests, builds the `test/` tools and uploads the panel preview images as a run artifact. The `BtTray.exe` of each run and the Releases are handled by `release.yml`, described below.
 
-### Publicando uma nova versão
+### Publishing a new version
 
-O workflow `.github/workflows/release.yml` compila o projeto num runner Windows a cada pull request e push na `main`. Para publicar uma versão:
+The `.github/workflows/release.yml` workflow builds the project on a Windows runner on every pull request and push to `main`. To publish a version:
 
-1. Atualize `AssemblyVersion` e `AssemblyFileVersion` em `src/Program.cs` (ex.: `1.1.0.0`).
-2. Crie e envie a tag correspondente:
+1. Update `AssemblyVersion` and `AssemblyFileVersion` in `src/Program.cs` (e.g. `1.1.0.0`).
+2. Create and push the matching tag:
 
    ```powershell
    git tag v1.1.0
    git push origin v1.1.0
    ```
 
-O workflow confere se a tag bate com a versão do `.exe`, compila e cria a Release com o `BtTray.exe` e o arquivo `BtTray.exe.sha256`.
+The workflow checks that the tag matches the `.exe` version, builds it and creates the Release with `BtTray.exe` and the `BtTray.exe.sha256` file.
 
-## Como funciona
+**Release notes:** before tagging, create `release-notes/vX.Y.Z.md` (named after the tag) describing what changed, in English and in Portuguese. Use the existing files as a template. The workflow uses that file as the Release text. If it does not exist, the notes show the list of commits since the previous tag. Either way, when changes come in through pull requests, GitHub adds a **What's Changed** section listing them.
 
-| Função | Técnica |
+## How it works
+
+| Function | Technique |
 |---|---|
-| Listar dispositivos | `SetupAPI` (enumeradores `BTHENUM`, `BTHLE`, `BTHLEDEVICE` e `BTHHFENUM`) |
-| Status de conexão | Propriedade de dispositivo `{83DA6326-…} 15` (conectado) |
-| Bateria | Propriedade `{104EA319-…} 2`, a mesma usada pelas Configurações do Windows |
-| Dispositivos fixados | Um ícone por dispositivo com `Shell_NotifyIcon` e um GUID estável derivado do endereço, para o Windows lembrar se ele fica visível |
-| Alertas de bateria | Notificações da bandeja (`NotifyIcon.ShowBalloonTip`), que o Windows 10/11 exibe como notificações do sistema |
-| Conectar / desconectar áudio | `IOCTL_KS_PROPERTY` com `KSPROPSETID_BtAudio` (`ONESHOT_RECONNECT` / `ONESHOT_DISCONNECT`), o mesmo mecanismo do botão "Conectar" do Windows |
-| Conectar / desconectar outros | `BluetoothSetServiceState` (`bthprops.cpl`) |
-| Interface | WinForms com desenho próprio (GDI/GDI+), ícones da fonte *Segoe Fluent Icons* ou *Segoe MDL2 Assets* |
-| Detectar mudanças | Mensagem `WM_DEVICECHANGE`, com intervalo de espera antes de atualizar |
+| List devices | `SetupAPI` (enumerators `BTHENUM`, `BTHLE`, `BTHLEDEVICE` and `BTHHFENUM`) |
+| Connection status | Device property `{83DA6326-…} 15` (connected) |
+| Battery | Property `{104EA319-…} 2`, the same one used by Windows Settings |
+| Pinned devices | One icon per device with `Shell_NotifyIcon` and a stable GUID derived from its address, so Windows remembers whether it stays visible |
+| Battery alerts | Tray notifications (`NotifyIcon.ShowBalloonTip`), which Windows 10/11 shows as system notifications |
+| Connect / disconnect audio | `IOCTL_KS_PROPERTY` with `KSPROPSETID_BtAudio` (`ONESHOT_RECONNECT` / `ONESHOT_DISCONNECT`), the same mechanism as the Windows "Connect" button |
+| Connect / disconnect others | `BluetoothSetServiceState` (`bthprops.cpl`) |
+| Interface | Owner-drawn WinForms (GDI/GDI+), icons from the *Segoe Fluent Icons* or *Segoe MDL2 Assets* font |
+| Detect changes | `WM_DEVICECHANGE` message, with a short delay before refreshing |
 
-## Estrutura do projeto
+## Project structure
 
 ```
 BtTray/
 ├── src/
-│   ├── Program.cs       # Ponto de entrada, ícone da bandeja, menu, atualizações e inicialização com o Windows
-│   ├── PopupForm.cs     # Painel (flyout) desenhado manualmente
-│   ├── Bluetooth.cs     # Enumeração, bateria, conectar/desconectar (P/Invoke)
-│   ├── BatteryAlerts.cs # Regras dos avisos de bateria fraca (20%) e crítica (10%)
-│   ├── PinnedIcons.cs   # Ícones dos dispositivos fixados na barra de tarefas e a lista salva deles
-│   └── Theme.cs         # Cores claro/escuro, cores da barra de bateria, glifos e ícones da bandeja
+│   ├── Program.cs       # Entry point, tray icon, menu, refreshes and start with Windows
+│   ├── PopupForm.cs     # Owner-drawn panel (flyout)
+│   ├── Bluetooth.cs     # Enumeration, battery, connect/disconnect (P/Invoke)
+│   ├── BatteryAlerts.cs # Low (20%) and critical (10%) battery warning rules
+│   ├── PinnedIcons.cs   # Icons of the devices pinned to the taskbar and their saved list
+│   └── Theme.cs         # Light/dark colors, battery bar colors, glyphs and tray icons
 ├── test/
-│   ├── TestMain.cs      # Ferramenta de diagnóstico em linha de comando
-│   ├── PreviewMain.cs   # Prévia do painel e teste dos alertas
-│   └── AlertTests.cs    # Testes automáticos das regras de alerta (rodam no CI)
+│   ├── TestMain.cs      # Command-line diagnostic tool
+│   ├── PreviewMain.cs   # Panel preview and alert check
+│   └── AlertTests.cs    # Automated alert rule tests (run in CI)
 ├── .github/workflows/
-│   ├── build.yml        # CI: compila e testa a cada push e PR
-│   └── release.yml      # Compila e publica Releases ao enviar tag
+│   ├── build.yml        # CI: builds and tests on every push and PR
+│   └── release.yml      # Builds and publishes Releases when a tag is pushed
 ├── docs/
 │   ├── screenshot.png
 │   └── cores-bateria.png
-├── app.manifest         # DPI, compatibilidade com Windows 10/11, execução sem administrador
-├── app.ico              # Ícone do executável
-├── build.ps1            # Script de compilação
-└── LICENSE              # Licença MIT
+├── release-notes/       # Notes for each version (vX.Y.Z.md), in English and Portuguese
+├── app.manifest         # DPI, Windows 10/11 compatibility, runs without administrator
+├── app.ico              # Executable icon
+├── build.ps1            # Build script
+├── README.md            # This document
+├── README.pt-BR.md      # This document in Portuguese
+└── LICENSE              # MIT License
 ```
 
-## Solução de problemas
+## Troubleshooting
 
 <details>
-<summary><b>O ícone não aparece na bandeja</b></summary>
+<summary><b>The icon does not appear in the tray</b></summary>
 
-Verifique em **Mostrar ícones ocultos (^)**. O Windows costuma colocar ícones novos ali. Arraste-o para a barra de tarefas para mantê-lo visível.
+Check inside **Show hidden icons (^)**. Windows usually puts new icons there. Drag it onto the taskbar to keep it visible.
 </details>
 
 <details>
-<summary><b>Meu dispositivo não aparece na lista</b></summary>
+<summary><b>My device is not in the list</b></summary>
 
-O BtTray mostra apenas dispositivos **já emparelhados**. Para emparelhar um novo, use *Configurações de Bluetooth* no próprio painel e depois clique em ⟳.
+BtTray only shows **already paired** devices. To pair a new one, use *Configurações de Bluetooth* (*Bluetooth settings*) in the panel and then click ⟳.
 </details>
 
 <details>
-<summary><b>"Não conectou. Ele está ligado e por perto?"</b></summary>
+<summary><b>"Não conectou. Ele está ligado e por perto?" (<i>Did not connect. Is it on and nearby?</i>)</b></summary>
 
-O comando foi enviado, mas o dispositivo não respondeu em até 20 segundos. Confira se ele está ligado, por perto e fora do estojo (no caso de fones), e se não está conectado a outro aparelho, como o celular.
+The command was sent, but the device did not respond within 20 seconds. Check that it is on, nearby and out of its case (for earbuds), and that it is not connected to another device, such as your phone.
 </details>
 
 <details>
-<summary><b>A bateria não aparece</b></summary>
+<summary><b>The battery is not shown</b></summary>
 
-Nem todo dispositivo informa a bateria ao Windows. Se ela não aparecer em *Configurações → Bluetooth e dispositivos*, também não vai aparecer no BtTray. A bateria só é exibida enquanto o dispositivo está conectado.
+Not every device reports its battery to Windows. If it does not appear in *Settings → Bluetooth & devices*, it will not appear in BtTray either. The battery is only shown while the device is connected.
 </details>
 
 <details>
-<summary><b>Não recebi o aviso de bateria fraca</b></summary>
+<summary><b>I did not get the low battery warning</b></summary>
 
-Confira se o modo **Não incomodar** está desligado e se as notificações do BtTray estão ativas em *Configurações → Sistema → Notificações*. Lembre também que cada aviso aparece só uma vez por descarga e que, com o painel fechado, a bateria é verificada a cada 60 s.
+Check that **Do not disturb** is off and that BtTray notifications are enabled in *Settings → System → Notifications*. Also remember that each warning appears only once per discharge and that, with the panel closed, the battery is checked every 60 s.
 </details>
 
 <details>
-<summary><b>Pede permissão de administrador para teclado ou mouse</b></summary>
+<summary><b>It asks for administrator rights for a keyboard or mouse</b></summary>
 
-Para dispositivos que não são de áudio, o Windows exige privilégios elevados para alterar os serviços Bluetooth. Clique com o botão direito no `BtTray.exe` e escolha **Executar como administrador**.
+For non-audio devices, Windows requires elevated privileges to change Bluetooth services. Right-click `BtTray.exe` and choose **Run as administrator**.
 </details>
 
-## Contribuindo
+## Contributing
 
-Contribuições são bem-vindas!
+Contributions are welcome!
 
-1. Faça um **fork** do repositório.
-2. Crie uma branch: `git checkout -b minha-melhoria`.
-3. Compile com `build.ps1` e teste com seus dispositivos.
-4. Abra um **Pull Request** descrevendo a mudança e os dispositivos com que testou.
+1. **Fork** the repository.
+2. Create a branch: `git checkout -b my-improvement`.
+3. Build with `build.ps1` and test with your devices.
+4. Open a **Pull Request** describing the change and the devices you tested with.
 
-Encontrou um bug ou tem um dispositivo que não funciona? Abra uma [**Issue**](https://github.com/FeOlegario/BtTray/issues) informando o modelo do dispositivo, a versão do Windows e o que aconteceu.
+Found a bug or have a device that does not work? Open an [**Issue**](https://github.com/FeOlegario/BtTray/issues) with the device model, the Windows version and what happened.
 
-## Licença
+## License
 
-Distribuído sob a **licença MIT**. Você pode usar, copiar, modificar e distribuir este software livremente, inclusive para fins comerciais, desde que mantenha o aviso de copyright. Veja o arquivo [LICENSE](LICENSE) para o texto completo.
+Distributed under the **MIT License**. You can use, copy, modify and distribute this software freely, including for commercial purposes, as long as you keep the copyright notice. See the [LICENSE](LICENSE) file for the full text.

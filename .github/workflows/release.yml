@@ -55,9 +55,36 @@ jobs:
     permissions:
       contents: write
     steps:
+      # histórico completo e tags, para listar os commits desde a versão anterior
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
           name: BtTray
+
+      # As notas vêm de release-notes/<tag>.md (o que mudou, em inglês e português). Sem esse arquivo, usa a lista
+      # de commits desde a tag anterior, para as notas não ficarem vazias: o --generate-notes só lista pull requests.
+      - name: Montar notas da versão
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ -f "release-notes/$TAG.md" ]; then
+            cp "release-notes/$TAG.md" notes.md
+            echo "Usando release-notes/$TAG.md"
+          else
+            echo "::warning::release-notes/$TAG.md não existe; usando a lista de commits."
+            prev=$(git describe --tags --abbrev=0 --match 'v*' "$TAG^" 2>/dev/null || true)
+            range="${prev:+$prev..}$TAG"
+            commits=$(git log --no-merges --pretty='- %s (%h)' "$range")
+            if [ -n "$commits" ]; then
+              printf '## O que mudou / What changed\n\n%s\n' "$commits" > notes.md
+            else
+              : > notes.md
+            fi
+          fi
+          cat notes.md
 
       - name: Publicar Release
         env:
@@ -67,4 +94,5 @@ jobs:
           gh release create "$TAG" BtTray.exe BtTray.exe.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --title "BtTray $TAG" \
+            --notes-file notes.md \
             --generate-notes
