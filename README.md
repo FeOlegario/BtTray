@@ -222,6 +222,22 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 .\bin\preview.exe bin\preview.png --notificar    # também mostra as notificações de 20% e 10%
 ```
 
+### Testes automáticos dos alertas
+
+O `test/AlertTests.cs` confere as regras dos avisos de bateria (20%, 10%, oscilação e rearme) sem interface e sem Bluetooth. Ele termina com erro se alguma regra falhar:
+
+```powershell
+New-Item -ItemType Directory -Force bin | Out-Null
+$csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+& $csc /nologo /main:BtTray.AlertTests /out:bin\alerttests.exe `
+    /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\AlertTests.cs
+.\bin\alerttests.exe
+```
+
+### Integração contínua
+
+A cada push (em qualquer branch) e pull request, o workflow `.github/workflows/build.yml` roda o `build.ps1` no Windows, executa os testes dos alertas, compila as ferramentas de `test/` e publica as imagens de prévia do painel como artefato da execução. O `BtTray.exe` de cada execução e as Releases ficam com o `release.yml`, descrito abaixo.
+
 ### Publicando uma nova versão
 
 O workflow `.github/workflows/release.yml` compila o projeto num runner Windows a cada pull request e push na `main`. Para publicar uma versão:
@@ -261,7 +277,11 @@ BtTray/
 │   └── Theme.cs         # Cores claro/escuro, cores da barra de bateria, glifos e ícone da bandeja
 ├── test/
 │   ├── TestMain.cs      # Ferramenta de diagnóstico em linha de comando
-│   └── PreviewMain.cs   # Prévia do painel e teste dos alertas
+│   ├── PreviewMain.cs   # Prévia do painel e teste dos alertas
+│   └── AlertTests.cs    # Testes automáticos das regras de alerta (rodam no CI)
+├── .github/workflows/
+│   ├── build.yml        # CI: compila e testa a cada push e PR
+│   └── release.yml      # Compila e publica Releases ao enviar tag
 ├── docs/
 │   ├── screenshot.png
 │   └── cores-bateria.png

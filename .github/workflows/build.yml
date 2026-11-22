@@ -1,0 +1,49 @@
+name: Testes
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: powershell
+    env:
+      CSC: C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compilar BtTray.exe
+        run: .\build.ps1
+
+      - name: Testes das regras de alerta
+        run: |
+          & $env:CSC /nologo /main:BtTray.AlertTests /out:bin\alerttests.exe `
+              /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\AlertTests.cs
+          if ($LASTEXITCODE -ne 0) { throw "Falha na compilação dos testes" }
+          .\bin\alerttests.exe
+          if ($LASTEXITCODE -ne 0) { throw "Testes das regras de alerta falharam" }
+
+      - name: Compilar ferramentas de teste (bttest e preview)
+        run: |
+          & $env:CSC /nologo /out:bin\bttest.exe src\Bluetooth.cs test\TestMain.cs
+          if ($LASTEXITCODE -ne 0) { throw "Falha na compilação do bttest" }
+          & $env:CSC /nologo /main:BtTray.PreviewMain /out:bin\preview.exe /win32manifest:app.manifest `
+              /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\PreviewMain.cs
+          if ($LASTEXITCODE -ne 0) { throw "Falha na compilação do preview" }
+
+      - name: Gerar prévia do painel
+        continue-on-error: true
+        timeout-minutes: 2
+        run: .\bin\preview.exe bin\preview.png
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview
+          path: bin/preview-*.png
+          if-no-files-found: ignore
