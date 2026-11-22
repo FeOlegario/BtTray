@@ -222,6 +222,20 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 .\bin\preview.exe bin\preview.png --notificar    # também mostra as notificações de 20% e 10%
 ```
 
+### Publicando uma nova versão
+
+O workflow `.github/workflows/release.yml` compila o projeto num runner Windows a cada pull request e push na `main`. Para publicar uma versão:
+
+1. Atualize `AssemblyVersion` e `AssemblyFileVersion` em `src/Program.cs` (ex.: `1.1.0.0`).
+2. Crie e envie a tag correspondente:
+
+   ```powershell
+   git tag v1.1.0
+   git push origin v1.1.0
+   ```
+
+O workflow confere se a tag bate com a versão do `.exe`, compila e cria a Release com o `BtTray.exe` e o arquivo `BtTray.exe.sha256`.
+
 ## Como funciona
 
 | Função | Técnica |
