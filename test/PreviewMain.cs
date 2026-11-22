@@ -37,6 +37,12 @@ namespace BtTray
             Render(list, false, basePath.Replace(".png", "-claro.png"));
             Render(list, true, basePath.Replace(".png", "-escuro.png"));
             RenderPinnedIcons(basePath.Replace(".png", "-icones.png"));
+            Render(list, false, basePath.Replace(".png", "-configuracoes-claro.png"), true);
+            Render(list, true, basePath.Replace(".png", "-configuracoes-escuro.png"), true);
+            L.Current = Language.English;
+            Render(list, false, basePath.Replace(".png", "-ingles.png"));
+            Render(list, true, basePath.Replace(".png", "-ingles-configuracoes.png"), true);
+            L.Current = Language.PtBR;
 
             // 3) optional: show the two real Windows notifications
             if (Array.IndexOf(args, "--notificar") >= 0)
@@ -61,7 +67,7 @@ namespace BtTray
             }
         }
 
-        static void Render(List<BtDevice> list, bool dark, string path)
+        static void Render(List<BtDevice> list, bool dark, string path, bool settings = false)
         {
             Theme.ForceDark = dark;
             using (var f = new PopupForm())
@@ -70,6 +76,7 @@ namespace BtTray
                 field.SetValue(f, list.Count);
                 f.Pinned.Add(list[0].AddressHex);   // show both states of the pin button
                 f.SetDevices(list, new Dictionary<string, string>(), new Dictionary<string, string>());
+                f.SetSettingsView(settings);
                 using (var bmp = new Bitmap(f.Width, f.Height))
                 {
                     f.DrawToBitmap(bmp, new Rectangle(0, 0, f.Width, f.Height));

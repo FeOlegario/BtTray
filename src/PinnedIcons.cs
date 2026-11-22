@@ -120,7 +120,7 @@ namespace BtTray
                 DeviceKind kind = d != null ? d.Kind : p.Kind;
                 string name = d != null ? d.Name : p.Name;
 
-                string tip = name + "\n" + (!connected ? "Desconectado" : battery >= 0 ? "Bateria: " + battery + "%" : "Conectado");
+                string tip = name + "\n" + (!connected ? L.T("Desconectado", "Disconnected") : battery >= 0 ? L.T("Bateria: ", "Battery: ") + battery + "%" : L.T("Conectado", "Connected"));
                 if (tip.Length > 127) tip = tip.Substring(0, 127);
                 string key = size + "|" + dark + "|" + kind + "|" + connected + "|" + battery;
                 if (key == s.Key && tip == s.Tip && s.Added) continue;
@@ -210,8 +210,8 @@ namespace BtTray
             if (menu == IntPtr.Zero) return;
             try
             {
-                AppendMenu(menu, 0, 1, "Abrir");
-                AppendMenu(menu, 0, 2, "Desafixar da barra de tarefas");
+                AppendMenu(menu, 0, 1, L.T("Abrir", "Open"));
+                AppendMenu(menu, 0, 2, L.T("Desafixar da barra de tarefas", "Unpin from taskbar"));
                 SetMenuDefaultItem(menu, 1, 0);
                 POINT pt;
                 GetCursorPos(out pt);

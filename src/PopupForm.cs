@@ -7,7 +7,10 @@ using System.Windows.Forms;
 
 namespace BtTray
 {
-    /// <summary>Borderless flyout shown above the tray icon. Everything is owner-drawn (no child controls) to stay light.</summary>
+    /// <summary>
+    /// Borderless flyout shown above the tray icon. Everything is owner-drawn (no child controls) to stay light.
+    /// It has two views: the device list and the app settings (opened by the gear in the header).
+    /// </summary>
     class PopupForm : Form
     {
         public event Action<BtDevice> ToggleRequested;
@@ -32,11 +35,16 @@ namespace BtTray
         float s = 1f;
         int W, HeaderH, RowH, FooterH, Pad, MaxRows = 6;
         int scroll, hoverRow = -1;
-        bool hoverBtn, hoverPin, hoverRefresh, hoverSettings;
+        bool hoverBtn, hoverPin, hoverRefresh, hoverSettings, hoverGear, hoverBack;
+
+        static readonly Language[] Languages = { Language.PtBR, Language.English };
+        bool settingsView;
+        int hoverLang = -1;
+        int OptH, SectionH;
         readonly ToolTip tip = new ToolTip();
         string tipText;
 
-        Font fTitle, fName, fStatus, fButton, fGlyph, fGlyphSmall;
+        Font fTitle, fName, fStatus, fButton, fGlyph, fGlyphSmall, fSection;
 
         public DateTime LastHidden = DateTime.MinValue;
 
@@ -54,6 +62,7 @@ namespace BtTray
 
             using (var g = CreateGraphics()) s = g.DpiX / 96f;
             W = Sc(384); HeaderH = Sc(48); RowH = Sc(60); FooterH = Sc(44); Pad = Sc(6);
+            OptH = Sc(44); SectionH = Sc(30);
 
             fTitle = new Font("Segoe UI Semibold", 11.5f);
             fName = new Font("Segoe UI", 10f);
@@ -61,6 +70,7 @@ namespace BtTray
             fButton = new Font("Segoe UI", 9f);
             fGlyph = new Font(Theme.IconFont, 15f);
             fGlyphSmall = new Font(Theme.IconFont, 11f);
+            fSection = new Font("Segoe UI Semibold", 9f);
             BackColor = theme.Back;
             UpdateSize();
         }
@@ -109,10 +119,24 @@ namespace BtTray
             Invalidate();
         }
 
+        /// <summary>Switches between the device list and the settings view.</summary>
+        public void SetSettingsView(bool on)
+        {
+            if (settingsView == on) return;
+            settingsView = on;
+            hoverRow = hoverLang = -1;
+            hoverBtn = hoverPin = hoverRefresh = hoverGear = hoverBack = false;
+            Cursor = Cursors.Default;
+            UpdateTip();
+            UpdateSize();
+            Invalidate();
+        }
+
         void UpdateSize()
         {
             int rows = Math.Max(1, Math.Min(devices.Count, MaxRows));
-            int h = HeaderH + rows * RowH + Pad * 2 + FooterH;
+            int content = settingsView ? SectionH + Languages.Length * OptH + Sc(4) : rows * RowH;
+            int h = HeaderH + content + Pad * 2 + FooterH;
             int maxScroll = Math.Max(0, devices.Count * RowH - MaxRows * RowH);
             scroll = Math.Min(scroll, maxScroll);
             if (Width != W || Height != h)
@@ -128,6 +152,7 @@ namespace BtTray
             Theme t = Theme.Current();
             if (t.Dark != theme.Dark) { theme = t; BackColor = t.Back; if (IsHandleCreated) ApplyDwm(); }
             scroll = 0; hoverRow = -1; hoverPin = false;
+            SetSettingsView(false);
             PlaceNearTray();
             Show();
             Activate();
@@ -160,7 +185,7 @@ namespace BtTray
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Escape) Hide();
+            if (e.KeyCode == Keys.Escape) { if (settingsView) SetSettingsView(false); else Hide(); }
             else if (e.KeyCode == Keys.F5 && RefreshRequested != null) RefreshRequested();
             base.OnKeyDown(e);
         }
@@ -189,12 +214,24 @@ namespace BtTray
 
         Rectangle RefreshRect { get { int z = Sc(34); return new Rectangle(W - z - Sc(10), (HeaderH - z) / 2 + Sc(2), z, z); } }
 
+        Rectangle GearRect { get { Rectangle r = RefreshRect; return new Rectangle(r.Left - r.Width - Sc(2), r.Top, r.Width, r.Height); } }
+
+        Rectangle BackRect { get { int z = Sc(34); return new Rectangle(Sc(8), (HeaderH - z) / 2 + Sc(2), z, z); } }
+
+        Rectangle LangRect(int i)
+        {
+            Rectangle l = ListRect;
+            return new Rectangle(Pad, l.Top + SectionH + i * OptH, W - Pad * 2, OptH);
+        }
+
+        static string BtSettingsText { get { return L.T("Configurações de Bluetooth", "Bluetooth settings"); } }
+
         Rectangle SettingsRect
         {
             get
             {
                 int top = Height - FooterH;
-                Size sz = TextRenderer.MeasureText("Configurações de Bluetooth", fStatus);
+                Size sz = TextRenderer.MeasureText(BtSettingsText, fStatus);
                 return new Rectangle(Sc(10), top + Sc(7), sz.Width + Sc(40), FooterH - Sc(14));
             }
         }
@@ -206,9 +243,30 @@ namespace BtTray
             g.Clear(theme.Back);
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
+            if (settingsView) PaintSettings(g);
+            else PaintDevices(g);
+
+            // footer
+            int top = Height - FooterH;
+            using (var pen = new Pen(theme.Divider)) g.DrawLine(pen, 0, top, W, top);
+            Rectangle sr = SettingsRect;
+            if (hoverSettings) FillRound(g, sr, Sc(5), theme.CardHover);
+            TextRenderer.DrawText(g, Theme.GBluetooth, fGlyphSmall, new Rectangle(sr.Left + Sc(6), sr.Top, Sc(22), sr.Height), theme.SubText,
+                                  TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            TextRenderer.DrawText(g, BtSettingsText, fStatus, new Rectangle(sr.Left + Sc(32), sr.Top, sr.Width - Sc(32), sr.Height),
+                                  theme.SubText, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        }
+
+        void PaintDevices(Graphics g)
+        {
             // header
-            TextRenderer.DrawText(g, "Dispositivos Bluetooth", fTitle, new Rectangle(Sc(18), 0, W - Sc(80), HeaderH + Sc(4)),
-                                  theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
+            Rectangle gr = GearRect;
+            TextRenderer.DrawText(g, L.T("Dispositivos Bluetooth", "Bluetooth devices"), fTitle,
+                                  new Rectangle(Sc(18), 0, gr.Left - Sc(22), HeaderH + Sc(4)), theme.Text,
+                                  TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+            if (hoverGear) FillRound(g, gr, Sc(5), theme.CardHover);
+            TextRenderer.DrawText(g, Theme.GSettings, fGlyphSmall, gr, theme.SubText,
+                                  TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             Rectangle rr = RefreshRect;
             if (hoverRefresh) FillRound(g, rr, Sc(5), theme.CardHover);
             TextRenderer.DrawText(g, Theme.GRefresh, fGlyphSmall, rr, theme.SubText,
@@ -219,7 +277,7 @@ namespace BtTray
             g.SetClip(lr);
             if (devices.Count == 0)
             {
-                TextRenderer.DrawText(g, "Nenhum dispositivo emparelhado", fName, lr, theme.SubText,
+                TextRenderer.DrawText(g, L.T("Nenhum dispositivo emparelhado", "No paired devices"), fName, lr, theme.SubText,
                                       TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             }
             for (int i = 0; i < devices.Count; i++)
@@ -238,16 +296,36 @@ namespace BtTray
                 int ty = lr.Top + (lr.Height - th) * scroll / Math.Max(1, total - lr.Height);
                 FillRound(g, new Rectangle(W - Sc(5), ty, Sc(3), th), Sc(1), theme.Border);
             }
+        }
 
-            // footer
-            int top = Height - FooterH;
-            using (var pen = new Pen(theme.Divider)) g.DrawLine(pen, 0, top, W, top);
-            Rectangle sr = SettingsRect;
-            if (hoverSettings) FillRound(g, sr, Sc(5), theme.CardHover);
-            TextRenderer.DrawText(g, Theme.GSettings, fGlyphSmall, new Rectangle(sr.Left + Sc(6), sr.Top, Sc(22), sr.Height), theme.SubText,
+        void PaintSettings(Graphics g)
+        {
+            // header: back arrow + title
+            Rectangle br = BackRect;
+            if (hoverBack) FillRound(g, br, Sc(5), theme.CardHover);
+            TextRenderer.DrawText(g, Theme.GBack, fGlyphSmall, br, theme.SubText,
                                   TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
-            TextRenderer.DrawText(g, "Configurações de Bluetooth", fStatus, new Rectangle(sr.Left + Sc(32), sr.Top, sr.Width - Sc(32), sr.Height),
+            TextRenderer.DrawText(g, L.T("Configurações", "Settings"), fTitle,
+                                  new Rectangle(br.Right + Sc(6), 0, W - br.Right - Sc(24), HeaderH + Sc(4)), theme.Text,
+                                  TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+
+            // language
+            Rectangle lr = ListRect;
+            TextRenderer.DrawText(g, L.T("Idioma", "Language"), fSection, new Rectangle(Sc(18), lr.Top, W - Sc(36), SectionH),
                                   theme.SubText, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
+            for (int i = 0; i < Languages.Length; i++)
+            {
+                Rectangle r = LangRect(i);
+                bool selected = Languages[i] == L.Current;
+                if (i == hoverLang) FillRound(g, r, Sc(6), theme.CardHover);
+                if (selected)   // accent bar on the left, like the Windows 11 selected item
+                    FillRound(g, new Rectangle(r.Left + Sc(2), r.Top + Sc(12), Sc(3), r.Height - Sc(24)), Sc(1.5f), theme.Accent);
+                TextRenderer.DrawText(g, L.NativeName(Languages[i]), fName, new Rectangle(r.Left + Sc(16), r.Top, r.Width - Sc(56), r.Height),
+                                      theme.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                if (selected)
+                    TextRenderer.DrawText(g, Theme.GCheck, fGlyphSmall, new Rectangle(r.Right - Sc(40), r.Top, Sc(30), r.Height), theme.Accent,
+                                          TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            }
         }
 
         void DrawRow(Graphics g, BtDevice d, Rectangle r, bool hover)
@@ -278,7 +356,7 @@ namespace BtTray
                 TextRenderer.DrawText(g, err, fStatus, st, Color.FromArgb(theme.Dark ? 255 : 196, theme.Dark ? 153 : 43, theme.Dark ? 164 : 28), tf);
             else
             {
-                string status = d.Connected ? "Conectado" : "Desconectado";
+                string status = d.Connected ? L.T("Conectado", "Connected") : L.T("Desconectado", "Disconnected");
                 TextRenderer.DrawText(g, status, fStatus, st, theme.SubText, tf);
                 if (d.Connected && d.Battery >= 0)
                 {
@@ -300,11 +378,11 @@ namespace BtTray
                 bool hb = hover && hoverBtn && busy == null;
                 string label;
                 Color back, fore;
-                if (busy != null) { label = "Aguarde…"; back = theme.Button; fore = theme.SubText; }
-                else if (d.Connected) { label = "Desconectar"; back = hb ? theme.ButtonHover : theme.Button; fore = theme.ButtonText; }
+                if (busy != null) { label = L.T("Aguarde…", "Please wait…"); back = theme.Button; fore = theme.SubText; }
+                else if (d.Connected) { label = L.T("Desconectar", "Disconnect"); back = hb ? theme.ButtonHover : theme.Button; fore = theme.ButtonText; }
                 else
                 {
-                    label = "Conectar";
+                    label = L.T("Conectar", "Connect");
                     back = hb ? ControlPaint.Light(theme.Accent, theme.Dark ? -0.15f : 0.25f) : theme.Accent;
                     if (hb && theme.Dark) back = Color.FromArgb(80, 180, 230);
                     fore = theme.AccentText;
@@ -352,6 +430,20 @@ namespace BtTray
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
+            if (settingsView)
+            {
+                int lang = -1;
+                for (int i = 0; i < Languages.Length; i++) if (LangRect(i).Contains(e.Location)) lang = i;
+                bool hbk = BackRect.Contains(e.Location), hst = SettingsRect.Contains(e.Location);
+                if (lang != hoverLang || hbk != hoverBack || hst != hoverSettings)
+                {
+                    hoverLang = lang; hoverBack = hbk; hoverSettings = hst;
+                    Cursor = (lang >= 0 || hbk || hst) ? Cursors.Hand : Cursors.Default;
+                    UpdateTip();
+                    Invalidate();
+                }
+                return;
+            }
             int row = -1; bool btn = false, pin = false;
             if (ListRect.Contains(e.Location))
                 for (int i = 0; i < devices.Count; i++)
@@ -362,11 +454,11 @@ namespace BtTray
                         pin = PinRect(RowRect(i), devices[i]).Contains(e.Location);
                         break;
                     }
-            bool hr = RefreshRect.Contains(e.Location), hs = SettingsRect.Contains(e.Location);
-            if (row != hoverRow || btn != hoverBtn || pin != hoverPin || hr != hoverRefresh || hs != hoverSettings)
+            bool hr = RefreshRect.Contains(e.Location), hs = SettingsRect.Contains(e.Location), hg = GearRect.Contains(e.Location);
+            if (row != hoverRow || btn != hoverBtn || pin != hoverPin || hr != hoverRefresh || hs != hoverSettings || hg != hoverGear)
             {
-                hoverRow = row; hoverBtn = btn; hoverPin = pin; hoverRefresh = hr; hoverSettings = hs;
-                Cursor = (btn || pin || hr || hs) ? Cursors.Hand : Cursors.Default;
+                hoverRow = row; hoverBtn = btn; hoverPin = pin; hoverRefresh = hr; hoverSettings = hs; hoverGear = hg;
+                Cursor = (btn || pin || hr || hs || hg) ? Cursors.Hand : Cursors.Default;
                 UpdateTip();
                 Invalidate();
             }
@@ -377,9 +469,11 @@ namespace BtTray
             string t = null;
             if (hoverPin && hoverRow >= 0 && hoverRow < devices.Count)
                 t = Pinned.Contains(devices[hoverRow].AddressHex)
-                    ? "Desafixar da barra de tarefas"
-                    : "Fixar na barra de tarefas (mostra o ícone e a bateria)";
-            else if (hoverRefresh) t = "Atualizar (F5)";
+                    ? L.T("Desafixar da barra de tarefas", "Unpin from taskbar")
+                    : L.T("Fixar na barra de tarefas (mostra o ícone e a bateria)", "Pin to taskbar (shows the icon and battery)");
+            else if (hoverRefresh) t = L.T("Atualizar (F5)", "Refresh (F5)");
+            else if (hoverGear) t = L.T("Configurações", "Settings");
+            else if (hoverBack) t = L.T("Voltar (Esc)", "Back (Esc)");
             if (t == tipText) return;
             tipText = t;
             tip.SetToolTip(this, t);
@@ -388,7 +482,7 @@ namespace BtTray
         protected override void OnMouseLeave(EventArgs e)
         {
             base.OnMouseLeave(e);
-            hoverRow = -1; hoverBtn = hoverPin = hoverRefresh = hoverSettings = false;
+            hoverRow = hoverLang = -1; hoverBtn = hoverPin = hoverRefresh = hoverSettings = hoverGear = hoverBack = false;
             UpdateTip();
             Invalidate();
         }
@@ -397,8 +491,21 @@ namespace BtTray
         {
             base.OnMouseClick(e);
             if (e.Button != MouseButtons.Left) return;
-            if (RefreshRect.Contains(e.Location)) { if (RefreshRequested != null) RefreshRequested(); return; }
             if (SettingsRect.Contains(e.Location)) { Program.OpenBluetoothSettings(); Hide(); return; }
+            if (settingsView)
+            {
+                if (BackRect.Contains(e.Location)) { SetSettingsView(false); return; }
+                for (int i = 0; i < Languages.Length; i++)
+                    if (LangRect(i).Contains(e.Location))
+                    {
+                        L.Set(Languages[i]);
+                        Invalidate();
+                        return;
+                    }
+                return;
+            }
+            if (GearRect.Contains(e.Location)) { SetSettingsView(true); return; }
+            if (RefreshRect.Contains(e.Location)) { if (RefreshRequested != null) RefreshRequested(); return; }
             if (!ListRect.Contains(e.Location)) return;
             for (int i = 0; i < devices.Count; i++)
             {
@@ -421,6 +528,7 @@ namespace BtTray
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
+            if (settingsView) return;
             int maxScroll = Math.Max(0, devices.Count * RowH - ListRect.Height);
             int ns = Math.Max(0, Math.Min(maxScroll, scroll - Math.Sign(e.Delta) * RowH));
             if (ns != scroll) { scroll = ns; Invalidate(); }

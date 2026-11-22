@@ -52,6 +52,20 @@ namespace BtTray
                     && res[0].Title.Contains("Fone") && res[0].Message.Contains("10%"));
             }
 
+            // English texts, and reading the saved language code (Portuguese is the default).
+            {
+                L.Current = Language.English;
+                var res = new BatteryAlerts().Check(new[] { Dev("Fone", 10) });
+                L.Current = Language.PtBR;
+                Check("aviso em inglês", res.Count == 1 && res[0].Title.StartsWith("Critical battery: ")
+                    && res[0].Message.Contains("10%"));
+                var pt = new BatteryAlerts().Check(new[] { Dev("Fone", 20) });
+                Check("aviso em português por padrão", pt.Count == 1 && pt[0].Title.StartsWith("Bateria fraca: "));
+                Check("código de idioma", L.Parse("en") == Language.English && L.Parse("EN-us") == Language.English
+                    && L.Parse("pt-BR") == Language.PtBR && L.Parse("") == Language.PtBR && L.Parse(null) == Language.PtBR
+                    && L.Parse("xx") == Language.PtBR && L.Parse(L.Code(Language.English)) == Language.English);
+            }
+
             Console.WriteLine(failures == 0 ? "Todos os testes passaram." : failures + " teste(s) falharam.");
             return failures == 0 ? 0 : 1;
         }

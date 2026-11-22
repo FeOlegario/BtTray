@@ -30,7 +30,7 @@ jobs:
 
       - name: Compilar ferramentas de teste (bttest e preview)
         run: |
-          & $env:CSC /nologo /out:bin\bttest.exe src\Bluetooth.cs test\TestMain.cs
+          & $env:CSC /nologo /out:bin\bttest.exe src\Bluetooth.cs src\Lang.cs test\TestMain.cs
           if ($LASTEXITCODE -ne 0) { throw "Falha na compilação do bttest" }
           & $env:CSC /nologo /main:BtTray.PreviewMain /out:bin\preview.exe /win32manifest:app.manifest `
               /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\PreviewMain.cs

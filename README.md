@@ -58,6 +58,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 - 🌗 **Follows the Windows theme**: light or dark, with rounded corners.
 - 💬 **Quick tooltip on the icon**: hover to see what is connected and the battery level.
 - 🚀 **"Iniciar com o Windows"** (*Start with Windows*) option in the right-click menu.
+- 🌐 **Portuguese (Brazil) or English**: pick the language from the ⚙ gear in the panel. Portuguese is the default.
 - 🪶 **Ultralight**: a single ~59 KB `.exe`, no installer and no extra dependencies.
 
 ## Requirements
@@ -92,6 +93,7 @@ See [Building from source](#building-from-source). It takes a few seconds and re
 | **Conectar** / **Desconectar** button (*Connect* / *Disconnect*) | Changes the device connection |
 | **📌** pin next to the button | Pins or unpins the device to the taskbar |
 | **⟳** icon in the panel or **F5** key | Refreshes the list |
+| **⚙** gear in the panel | Opens the BtTray settings (language: Português (Brasil) or English) |
 | **Esc** key or click outside | Closes the panel |
 | **Right-click** the icon | Menu: Abrir (*Open*), Atualizar (*Refresh*), Iniciar com o Windows (*Start with Windows*), Configurações de Bluetooth (*Bluetooth settings*) and Sair (*Exit*) |
 | Hover over the icon | Shows the connected devices and their battery |
@@ -201,6 +203,7 @@ To keep resource use low:
   - `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\BtTray`, **only** if you turn on *Iniciar com o Windows* (*Start with Windows*).
   - `%LOCALAPPDATA%\BtTray\servicos-desativados.txt`, **only** when you disconnect a non-audio device, to know which services to re-enable later.
   - `%LOCALAPPDATA%\BtTray\fixados.txt`, **only** if you pin a device to the taskbar (address, type and name of the pinned devices).
+  - `%LOCALAPPDATA%\BtTray\configuracoes.txt`, **only** if you change the language (stores just the chosen language).
 
 ## Building from source
 
@@ -224,7 +227,7 @@ The `test/` folder has a command-line utility that lists the devices and tests t
 ```powershell
 New-Item -ItemType Directory -Force bin | Out-Null
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
-& $csc /nologo /out:bin\bttest.exe src\Bluetooth.cs test\TestMain.cs
+& $csc /nologo /out:bin\bttest.exe src\Bluetooth.cs src\Lang.cs test\TestMain.cs
 
 .\bin\bttest.exe                 # lists the devices
 .\bin\bttest.exe disconnect 0    # disconnects the device at index 0
@@ -297,7 +300,8 @@ The workflow checks that the tag matches the `.exe` version, builds it and creat
 BtTray/
 ├── src/
 │   ├── Program.cs       # Entry point, tray icon, menu, refreshes and start with Windows
-│   ├── PopupForm.cs     # Owner-drawn panel (flyout)
+│   ├── PopupForm.cs     # Owner-drawn panel (flyout), including the settings view
+│   ├── Lang.cs          # Interface language (pt-BR or English) and where it is saved
 │   ├── Bluetooth.cs     # Enumeration, battery, connect/disconnect (P/Invoke)
 │   ├── BatteryAlerts.cs # Low (20%) and critical (10%) battery warning rules
 │   ├── PinnedIcons.cs   # Icons of the devices pinned to the taskbar and their saved list

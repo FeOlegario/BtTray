@@ -185,7 +185,8 @@ namespace BtTray
         /// <summary>Returns null on success, or an error message.</summary>
         public static string Connect(BtDevice d)
         {
-            if (d.IsLE) return "Dispositivos Bluetooth LE se conectam sozinhos quando estão ligados e por perto.";
+            if (d.IsLE) return L.T("Dispositivos Bluetooth LE se conectam sozinhos quando estão ligados e por perto.",
+                                 "Bluetooth LE devices connect on their own when they are on and nearby.");
             int ok = SendToAudioFilters(d, KSPROPERTY_ONESHOT_RECONNECT);
             if (ok > 0) return null;
             return ServiceFallback(d, true);
@@ -193,7 +194,8 @@ namespace BtTray
 
         public static string Disconnect(BtDevice d)
         {
-            if (d.IsLE) return "O Windows não permite desconectar dispositivos Bluetooth LE por aplicativos.";
+            if (d.IsLE) return L.T("O Windows não permite desconectar dispositivos Bluetooth LE por aplicativos.",
+                                 "Windows does not let apps disconnect Bluetooth LE devices.");
             int ok = SendToAudioFilters(d, KSPROPERTY_ONESHOT_DISCONNECT);
             if (ok > 0) return null;
             return ServiceFallback(d, false);
@@ -243,7 +245,7 @@ namespace BtTray
             info.dwSize = Marshal.SizeOf(typeof(Native.BLUETOOTH_DEVICE_INFO));
             info.Address = d.Address;
             int err = Native.BluetoothGetDeviceInfo(IntPtr.Zero, ref info);
-            if (err != 0) return "Não foi possível acessar o dispositivo (erro " + err + ").";
+            if (err != 0) return L.T("Não foi possível acessar o dispositivo (erro ", "Could not access the device (error ") + err + ").";
 
             var saved = LoadState();
             List<Guid> services;
@@ -267,7 +269,8 @@ namespace BtTray
             else
             {
                 services = InstalledServices(ref info);
-                if (services.Count == 0) return "Este dispositivo não expõe serviços que possam ser desconectados.";
+                if (services.Count == 0) return L.T("Este dispositivo não expõe serviços que possam ser desconectados.",
+                                                    "This device has no services that can be disconnected.");
                 var disabled = new List<Guid>();
                 int lastErr = 0;
                 foreach (Guid g in services)
@@ -285,6 +288,12 @@ namespace BtTray
 
         static string Explain(int err, bool connect)
         {
+            if (L.Current == Language.English)
+            {
+                if (err == 5) return "Windows requires administrator rights to " + (connect ? "connect" : "disconnect") +
+                                     " this type of device. Run the app as administrator.";
+                return "Could not " + (connect ? "connect" : "disconnect") + " (error " + err + "). Make sure the device is on and nearby.";
+            }
             if (err == 5) return "O Windows exige permissão de administrador para " + (connect ? "conectar" : "desconectar") +
                                  " este tipo de dispositivo. Execute o app como administrador.";
             return "Não foi possível " + (connect ? "conectar" : "desconectar") + " (erro " + err + "). Verifique se o dispositivo está ligado e por perto.";
