@@ -222,6 +222,22 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 .\bin\preview.exe bin\preview.png --notificar    # também mostra as notificações de 20% e 10%
 ```
 
+### Testes automáticos dos alertas
+
+O `test/AlertTests.cs` confere as regras dos avisos de bateria (20%, 10%, oscilação e rearme) sem interface e sem Bluetooth. Ele termina com erro se alguma regra falhar:
+
+```powershell
+New-Item -ItemType Directory -Force bin | Out-Null
+$csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+& $csc /nologo /main:BtTray.AlertTests /out:bin\alerttests.exe `
+    /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\AlertTests.cs
+.\bin\alerttests.exe
+```
+
+### Integração contínua
+
+A cada push e pull request, o GitHub Actions (`.github/workflows/build.yml`) roda o `build.ps1` no Windows, executa os testes dos alertas, compila as ferramentas de `test/` e publica o `BtTray.exe` e as imagens de prévia como artefatos da execução.
+
 ## Como funciona
 
 | Função | Técnica |
@@ -247,7 +263,10 @@ BtTray/
 │   └── Theme.cs         # Cores claro/escuro, cores da barra de bateria, glifos e ícone da bandeja
 ├── test/
 │   ├── TestMain.cs      # Ferramenta de diagnóstico em linha de comando
-│   └── PreviewMain.cs   # Prévia do painel e teste dos alertas
+│   ├── PreviewMain.cs   # Prévia do painel e teste dos alertas
+│   └── AlertTests.cs    # Testes automáticos das regras de alerta (rodam no CI)
+├── .github/workflows/
+│   └── build.yml        # CI: compila e testa a cada push e PR
 ├── docs/
 │   ├── screenshot.png
 │   └── cores-bateria.png
