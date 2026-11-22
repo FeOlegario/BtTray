@@ -1,4 +1,4 @@
-name: Build
+name: Testes
 
 on:
   push:
@@ -40,11 +40,6 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         run: .\bin\preview.exe bin\preview.png
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: BtTray
-          path: bin/BtTray.exe
 
       - uses: actions/upload-artifact@v4
         if: always()

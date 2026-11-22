@@ -236,7 +236,21 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 
 ### Integração contínua
 
-A cada push e pull request, o GitHub Actions (`.github/workflows/build.yml`) roda o `build.ps1` no Windows, executa os testes dos alertas, compila as ferramentas de `test/` e publica o `BtTray.exe` e as imagens de prévia como artefatos da execução.
+A cada push (em qualquer branch) e pull request, o workflow `.github/workflows/build.yml` roda o `build.ps1` no Windows, executa os testes dos alertas, compila as ferramentas de `test/` e publica as imagens de prévia do painel como artefato da execução. O `BtTray.exe` de cada execução e as Releases ficam com o `release.yml`, descrito abaixo.
+
+### Publicando uma nova versão
+
+O workflow `.github/workflows/release.yml` compila o projeto num runner Windows a cada pull request e push na `main`. Para publicar uma versão:
+
+1. Atualize `AssemblyVersion` e `AssemblyFileVersion` em `src/Program.cs` (ex.: `1.1.0.0`).
+2. Crie e envie a tag correspondente:
+
+   ```powershell
+   git tag v1.1.0
+   git push origin v1.1.0
+   ```
+
+O workflow confere se a tag bate com a versão do `.exe`, compila e cria a Release com o `BtTray.exe` e o arquivo `BtTray.exe.sha256`.
 
 ## Como funciona
 
@@ -266,7 +280,8 @@ BtTray/
 │   ├── PreviewMain.cs   # Prévia do painel e teste dos alertas
 │   └── AlertTests.cs    # Testes automáticos das regras de alerta (rodam no CI)
 ├── .github/workflows/
-│   └── build.yml        # CI: compila e testa a cada push e PR
+│   ├── build.yml        # CI: compila e testa a cada push e PR
+│   └── release.yml      # Compila e publica Releases ao enviar tag
 ├── docs/
 │   ├── screenshot.png
 │   └── cores-bateria.png
