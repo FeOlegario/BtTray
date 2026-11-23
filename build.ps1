@@ -43,7 +43,8 @@ if (-not (Test-Path app.ico)) {
 }
 
 $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-& $csc /nologo /target:winexe /optimize+ /platform:anycpu /out:bin\BtTray.exe `
+# @winrt.rsp: referências do WinRT usadas pela busca de dispositivos (src/Discovery.cs)
+& $csc /nologo /target:winexe /optimize+ /platform:anycpu /out:bin\BtTray.exe '@winrt.rsp' `
     /win32icon:app.ico /win32manifest:app.manifest `
     /r:System.Windows.Forms.dll /r:System.Drawing.dll `
     src\*.cs

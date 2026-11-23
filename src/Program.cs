@@ -9,8 +9,8 @@ using Microsoft.Win32;
 
 [assembly: System.Reflection.AssemblyTitle("BtTray - Bluetooth na bandeja")]
 [assembly: System.Reflection.AssemblyProduct("BtTray")]
-[assembly: System.Reflection.AssemblyVersion("1.2.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.2.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.3.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.3.0.0")]
 
 namespace BtTray
 {
@@ -63,6 +63,8 @@ namespace BtTray
         readonly PinnedIcons pinnedIcons = new PinnedIcons();
         readonly List<Pin> pins = PinStore.Load();
 
+        DeviceDiscovery discovery;   // created on first use, so WinRT is only loaded when the search is opened
+
         int refreshing;            // 0/1, interlocked
         volatile bool refreshAgain;
         bool? iconConnected;
@@ -79,11 +81,15 @@ namespace BtTray
             popup.VisibleChanged += delegate
             {
                 if (popup.Visible) { trim.Stop(); RequestRefresh(); }
-                else trim.Start();
+                else { trim.Start(); StopDiscovery(); }
                 UpdatePollInterval();
             };
             popup.DeviceChanged += delegate { debounce.Stop(); debounce.Start(); };
             popup.PinRequested += TogglePin;
+            popup.DiscoverOpened += TryStartDiscovery;
+            popup.RescanRequested += TryStartDiscovery;
+            popup.DiscoverClosed += StopDiscovery;
+            popup.PairRequested += Pair;
             foreach (Pin p in pins) popup.Pinned.Add(p.Address);
             pinnedIcons.OpenRequested += OnIconClick;
             pinnedIcons.UnpinRequested += Unpin;
@@ -274,6 +280,55 @@ namespace BtTray
             errorUntil[addr] = DateTime.Now.AddSeconds(8);
         }
 
+        // ---------------------------------------------------------------- search and pairing of new devices
+        void TryStartDiscovery()
+        {
+            // StartDiscovery is a separate method so that a missing WinRT (very old Windows) fails inside this try
+            try { StartDiscovery(); }
+            catch
+            {
+                popup.SetFound(new List<FoundDevice>(), false);
+                popup.SetDiscoverError(L.T("A busca de dispositivos não está disponível neste Windows.",
+                                           "Device search is not available on this version of Windows."));
+            }
+        }
+
+        void StartDiscovery()
+        {
+            if (discovery == null)
+            {
+                discovery = new DeviceDiscovery(popup);
+                discovery.Changed += delegate { popup.SetFound(discovery.Devices, discovery.Searching); };
+            }
+            discovery.Start();
+        }
+
+        void StopDiscovery()
+        {
+            if (discovery != null) discovery.Stop();
+        }
+
+        void Pair(FoundDevice f)
+        {
+            if (discovery == null) return;
+            discovery.Stop();   // scanning keeps the radio busy and slows pairing down
+            popup.SetPairing(f.Id);
+            discovery.Pair(f, delegate (string err)
+            {
+                popup.SetPairing(null);
+                bool searchOpen = popup.Visible && popup.CurrentView == PopupForm.View.Discover;
+                if (err == null)
+                {
+                    discovery.Remove(f.Id);
+                    tray.ShowBalloonTip(5000, L.T("Dispositivo emparelhado", "Device paired"), f.Name, ToolTipIcon.Info);
+                    if (searchOpen) popup.SetView(PopupForm.View.Devices);   // the new device shows up in the list
+                    RequestRefresh();
+                }
+                else if (searchOpen) popup.SetDiscoverError(err);
+                else tray.ShowBalloonTip(6000, f.Name, err, ToolTipIcon.Warning);   // the flyout closed meanwhile
+            });
+        }
+
         // ---------------------------------------------------------------- devices pinned to the taskbar
         void TogglePin(BtDevice d)
         {
@@ -383,6 +438,7 @@ namespace BtTray
             tray.Visible = false;
             tray.Dispose();
             pinnedIcons.Dispose();
+            if (discovery != null) discovery.Dispose();
             poll.Dispose(); debounce.Dispose(); trim.Dispose(); alertTimer.Dispose();
             popup.Dispose();
             base.ExitThreadCore();

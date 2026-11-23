@@ -39,9 +39,13 @@ namespace BtTray
             RenderPinnedIcons(basePath.Replace(".png", "-icones.png"));
             Render(list, false, basePath.Replace(".png", "-configuracoes-claro.png"), true);
             Render(list, true, basePath.Replace(".png", "-configuracoes-escuro.png"), true);
+            RenderDiscover(false, true, basePath.Replace(".png", "-busca-claro.png"));
+            RenderDiscover(true, false, basePath.Replace(".png", "-busca-escuro.png"));
+            RenderDiscover(false, false, basePath.Replace(".png", "-busca-vazia.png"), true);
             L.Current = Language.English;
             Render(list, false, basePath.Replace(".png", "-ingles.png"));
             Render(list, true, basePath.Replace(".png", "-ingles-configuracoes.png"), true);
+            RenderDiscover(true, true, basePath.Replace(".png", "-ingles-busca.png"));
             L.Current = Language.PtBR;
 
             // 3) optional: show the two real Windows notifications
@@ -63,6 +67,32 @@ namespace BtTray
                         }
                     }
                     tray.Visible = false;
+                }
+            }
+        }
+
+        // The "Add device" view with fake results (no real search): searching or finished, one device being paired.
+        static void RenderDiscover(bool dark, bool searching, string path, bool empty = false)
+        {
+            Theme.ForceDark = dark;
+            var found = new List<FoundDevice>();
+            if (!empty)
+            {
+                found.Add(new FoundDevice { Id = "1", Name = "Fone sem fio", Kind = DeviceKind.Headphones, Signal = -50 });
+                found.Add(new FoundDevice { Id = "2", Name = "Mouse de escritório", Kind = DeviceKind.Mouse, IsLE = true, Signal = -60 });
+                found.Add(new FoundDevice { Id = "3", Name = "Teclado compacto", Kind = DeviceKind.Keyboard, IsLE = true, Signal = -70 });
+                found.Add(new FoundDevice { Id = "4", Name = "Caixa de som", Kind = DeviceKind.Speaker, Signal = -80 });
+            }
+            using (var f = new PopupForm())
+            {
+                f.SetView(PopupForm.View.Discover);
+                f.SetFound(found, searching);
+                if (!empty && !searching) f.SetPairing("2");
+                using (var bmp = new Bitmap(f.Width, f.Height))
+                {
+                    f.DrawToBitmap(bmp, new Rectangle(0, 0, f.Width, f.Height));
+                    bmp.Save(path);
+                    Console.WriteLine("Prévia salva em " + path);
                 }
             }
         }

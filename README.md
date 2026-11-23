@@ -8,7 +8,7 @@
 
 ![Windows 11](https://img.shields.io/badge/tested%20on-Windows%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Size](https://img.shields.io/badge/executable-~66%20KB-success)
+![Size](https://img.shields.io/badge/executable-~84%20KB-success)
 ![RAM](https://img.shields.io/badge/idle%20RAM-~2%20MB-success)
 ![MIT License](https://img.shields.io/badge/license-MIT-yellow)
 
@@ -50,6 +50,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 ## Features
 
 - 📋 **Lists all paired devices**, one below the other, with connected ones first.
+- ➕ **Finds and pairs new devices** nearby (Bluetooth Classic and LE) without opening Windows Settings.
 - 🔌 **Connects and disconnects with one click.** The button shows "Aguarde…" (*Please wait…*) while the operation is in progress.
 - 🔋 **Colored battery bar** that shrinks with the charge and changes color: green, yellow/orange and red. Shown when the device reports its battery to Windows.
 - 🔔 **Low battery alerts** from Windows at **20%** and **10%**.
@@ -59,7 +60,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 - 💬 **Quick tooltip on the icon**: hover to see what is connected and the battery level.
 - 🚀 **"Iniciar com o Windows"** (*Start with Windows*) option in the right-click menu.
 - 🌐 **Portuguese (Brazil) or English**: pick the language from the ⚙ gear in the panel. Portuguese is the default.
-- 🪶 **Ultralight**: a single ~66 KB `.exe`, no installer and no extra dependencies.
+- 🪶 **Ultralight**: a single ~84 KB `.exe`, no installer and no extra dependencies.
 
 ## Requirements
 
@@ -93,12 +94,24 @@ See [Building from source](#building-from-source). It takes a few seconds and re
 | **Conectar** / **Desconectar** button (*Connect* / *Disconnect*) | Changes the device connection |
 | **📌** pin next to the button | Pins or unpins the device to the taskbar |
 | **⟳** icon in the panel or **F5** key | Refreshes the list |
+| **+** in the panel | Searches for nearby devices to pair (see below) |
 | **⚙** gear in the panel | Opens the BtTray settings (language: Português (Brasil) or English) |
 | **Esc** key or click outside | Closes the panel |
 | **Right-click** the icon | Menu: Abrir (*Open*), Atualizar (*Refresh*), Iniciar com o Windows (*Start with Windows*), Configurações de Bluetooth (*Bluetooth settings*) and Sair (*Exit*) |
 | Hover over the icon | Shows the connected devices and their battery |
 
 **Keep the icon always visible:** by default, Windows may put the icon inside **Show hidden icons (^)**. To keep it on the taskbar, drag it out of that area or turn it on in *Settings → Personalization → Taskbar → Other system tray icons*.
+
+### Adding a new device
+
+1. Put the device in **pairing mode** (usually by holding its power or Bluetooth button until a light blinks).
+2. Click **+** at the top of the panel. BtTray lists the nearby devices that are not paired yet; headphones and speakers can take about 30 s to show up. The search runs for 45 s, and **F5** or ⟳ searches again.
+3. Click **Emparelhar** (*Pair*) next to the device. If Windows asks you to confirm a PIN, check that it matches the one on the device.
+4. Once paired, the device shows up in the main list.
+
+> [!NOTE]
+> - While the search runs, headphones that are already connected may stutter for a moment: scanning shares the Bluetooth radio. The search stops on its own when you go back, close the panel or after 45 s.
+> - Devices that ask you to **type** a PIN (some older keyboards) are not supported yet. Pair them in *Configurações de Bluetooth* (*Bluetooth settings*).
 
 ### Devices pinned to the taskbar
 
@@ -183,7 +196,7 @@ Measured on Windows 11 with one paired Bluetooth headset:
 
 | Metric | Value |
 |---|---|
-| Executable size | ~66 KB |
+| Executable size | ~84 KB |
 | RAM in use with the panel closed | ~2.3 MB |
 | Idle CPU | 0% (0 ms in 15 s) |
 | Time to list devices | ~120 ms (in the background) |
@@ -220,6 +233,9 @@ The executable is created at `bin\BtTray.exe`.
 > [!TIP]
 > The script also creates the application icon (`app.ico`) if it does not exist.
 
+> [!NOTE]
+> The device search uses WinRT (`Windows.Devices.Enumeration`). The references to its metadata, which ships with Windows 10/11, are in `winrt.rsp` and passed to the compiler as `@winrt.rsp`. The paths in it assume Windows is installed in `C:\Windows`.
+
 ### Diagnostic tool (optional)
 
 The `test/` folder has a command-line utility that lists the devices and tests the actions without opening the interface:
@@ -242,7 +258,7 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 New-Item -ItemType Directory -Force bin | Out-Null
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 & $csc /nologo /main:BtTray.PreviewMain /out:bin\preview.exe /win32manifest:app.manifest `
-    /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\PreviewMain.cs
+    '@winrt.rsp' /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\PreviewMain.cs
 
 .\bin\preview.exe bin\preview.png                # creates preview-claro.png, preview-escuro.png and preview-icones.png
 .\bin\preview.exe bin\preview.png --notificar    # also shows the 20% and 10% notifications
@@ -256,7 +272,7 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 New-Item -ItemType Directory -Force bin | Out-Null
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 & $csc /nologo /main:BtTray.AlertTests /out:bin\alerttests.exe `
-    /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\AlertTests.cs
+    '@winrt.rsp' /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\AlertTests.cs
 .\bin\alerttests.exe
 ```
 
@@ -287,9 +303,10 @@ The workflow checks that the tag matches the `.exe` version, builds it and creat
 | List devices | `SetupAPI` (enumerators `BTHENUM`, `BTHLE`, `BTHLEDEVICE` and `BTHHFENUM`) |
 | Connection status | Device property `{83DA6326-…} 15` (connected) |
 | Battery | Property `{104EA319-…} 2`, the same one used by Windows Settings |
+| Find and pair new devices | WinRT `Windows.Devices.Enumeration` (`DeviceWatcher` and `DeviceInformationCustomPairing`), the same API used by Windows Settings |
 | Pinned devices | One icon per device with `Shell_NotifyIcon` and a stable GUID derived from its address, so Windows remembers whether it stays visible |
 | Battery alerts | Tray notifications (`NotifyIcon.ShowBalloonTip`), which Windows 10/11 shows as system notifications |
-| Connect / disconnect audio | `IOCTL_KS_PROPERTY` with `KSPROPSETID_BtAudio` (`ONESHOT_RECONNECT` / `ONESHOT_DISCONNECT`), the same mechanism as the Windows "Connect" button |
+| Connect / disconnect audio | `IOCTL_KS_PROPERTY` with `KSPROPSETID_BtAudio` (`ONESHOT_RECONNECT` / `ONESHOT_DISCONNECT`), the same mechanism as the Windows "Connect" button. To disconnect, the whole link is then dropped with `IOCTL_BTH_DISCONNECT_DEVICE`, since many headsets also keep a HID link for their buttons |
 | Connect / disconnect others | `BluetoothSetServiceState` (`bthprops.cpl`) |
 | Interface | Owner-drawn WinForms (GDI/GDI+), icons from the *Segoe Fluent Icons* or *Segoe MDL2 Assets* font |
 | Detect changes | `WM_DEVICECHANGE` message, with a short delay before refreshing |
@@ -305,6 +322,7 @@ BtTray/
 │   ├── Bluetooth.cs     # Enumeration, battery, connect/disconnect (P/Invoke)
 │   ├── BatteryAlerts.cs # Low (20%) and critical (10%) battery warning rules
 │   ├── PinnedIcons.cs   # Icons of the devices pinned to the taskbar and their saved list
+│   ├── Discovery.cs     # Search for nearby unpaired devices and pairing (WinRT)
 │   └── Theme.cs         # Light/dark colors, battery bar colors, glyphs and tray icons
 ├── test/
 │   ├── TestMain.cs      # Command-line diagnostic tool
@@ -320,6 +338,7 @@ BtTray/
 ├── app.manifest         # DPI, Windows 10/11 compatibility, runs without administrator
 ├── app.ico              # Executable icon
 ├── build.ps1            # Build script
+├── winrt.rsp            # Compiler references for WinRT (device search)
 ├── README.md            # This document
 ├── README.pt-BR.md      # This document in Portuguese
 └── LICENSE              # MIT License
@@ -336,7 +355,7 @@ Check inside **Show hidden icons (^)**. Windows usually puts new icons there. Dr
 <details>
 <summary><b>My device is not in the list</b></summary>
 
-BtTray only shows **already paired** devices. To pair a new one, use *Configurações de Bluetooth* (*Bluetooth settings*) in the panel and then click ⟳.
+The main list only shows **already paired** devices. To pair a new one, click **+** in the panel (see [Adding a new device](#adding-a-new-device)). If it does not show up in the search, check that it is in pairing mode and not connected to another device, such as your phone.
 </details>
 
 <details>

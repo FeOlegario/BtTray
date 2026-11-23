@@ -116,7 +116,7 @@ namespace BtTray
             return devices;
         }
 
-        static DeviceKind KindFromCod(uint cod)
+        internal static DeviceKind KindFromCod(uint cod)
         {
             if (cod == 0) return DeviceKind.Generic;
             uint major = (cod >> 8) & 0x1F;
@@ -197,7 +197,13 @@ namespace BtTray
             if (d.IsLE) return L.T("O Windows não permite desconectar dispositivos Bluetooth LE por aplicativos.",
                                  "Windows does not let apps disconnect Bluetooth LE devices.");
             int ok = SendToAudioFilters(d, KSPROPERTY_ONESHOT_DISCONNECT);
-            if (ok > 0) return null;
+            if (ok > 0)
+            {
+                // The audio profiles are closed above, but many headsets also have a HID link (their media buttons)
+                // that keeps them connected. Dropping the whole link, as Windows Settings does, disconnects everything.
+                DisconnectLink(d.Address);
+                return null;
+            }
             return ServiceFallback(d, false);
         }
 
@@ -210,6 +216,30 @@ namespace BtTray
                 if (SendKsProperty(f.Path, prop)) ok++;
             }
             return ok;
+        }
+
+        /// <summary>Drops the Bluetooth link to the device (all profiles), through every local radio.</summary>
+        static bool DisconnectLink(ulong address)
+        {
+            if (address == 0) return false;
+            var p = new Native.BLUETOOTH_FIND_RADIO_PARAMS();
+            p.dwSize = Marshal.SizeOf(typeof(Native.BLUETOOTH_FIND_RADIO_PARAMS));
+            IntPtr radio;
+            IntPtr find = Native.BluetoothFindFirstRadio(ref p, out radio);
+            if (find == IntPtr.Zero) return false;
+            bool any = false;
+            try
+            {
+                do
+                {
+                    int ret;
+                    ulong a = address;
+                    if (Native.DeviceIoControl(radio, Native.IOCTL_BTH_DISCONNECT_DEVICE, ref a, 8, IntPtr.Zero, 0, out ret, IntPtr.Zero)) any = true;
+                    Native.CloseHandle(radio);
+                } while (Native.BluetoothFindNextRadio(find, out radio));
+            }
+            finally { Native.BluetoothFindRadioClose(find); }
+            return any;
         }
 
         static bool SendKsProperty(string path, int id)
@@ -406,6 +436,11 @@ namespace BtTray
         public const uint GENERIC_READ = 0x80000000, GENERIC_WRITE = 0x40000000;
         public const uint FILE_SHARE_READ = 1, FILE_SHARE_WRITE = 2, OPEN_EXISTING = 3;
         public const uint IOCTL_KS_PROPERTY = 0x002F0003;
+        // CTL_CODE(FILE_DEVICE_BLUETOOTH, 0x03, METHOD_BUFFERED, FILE_ANY_ACCESS), from bthioctl.h
+        public const uint IOCTL_BTH_DISCONNECT_DEVICE = 0x0041000C;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct BLUETOOTH_FIND_RADIO_PARAMS { public int dwSize; }
         public const int KSPROPERTY_TYPE_GET = 1;
 
         [StructLayout(LayoutKind.Sequential)]
@@ -463,6 +498,22 @@ namespace BtTray
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool DeviceIoControl(SafeFileHandle h, uint code, ref KSPROPERTY inBuf, int inSize,
                                                   IntPtr outBuf, int outSize, out int returned, IntPtr overlapped);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool DeviceIoControl(IntPtr h, uint code, ref ulong inBuf, int inSize,
+                                                  IntPtr outBuf, int outSize, out int returned, IntPtr overlapped);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool CloseHandle(IntPtr h);
+
+        [DllImport("bthprops.cpl", SetLastError = true)]
+        public static extern IntPtr BluetoothFindFirstRadio(ref BLUETOOTH_FIND_RADIO_PARAMS p, out IntPtr hRadio);
+
+        [DllImport("bthprops.cpl", SetLastError = true)]
+        public static extern bool BluetoothFindNextRadio(IntPtr hFind, out IntPtr hRadio);
+
+        [DllImport("bthprops.cpl", SetLastError = true)]
+        public static extern bool BluetoothFindRadioClose(IntPtr hFind);
 
         [DllImport("bthprops.cpl", SetLastError = true)]
         public static extern int BluetoothGetDeviceInfo(IntPtr hRadio, ref BLUETOOTH_DEVICE_INFO info);

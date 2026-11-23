@@ -8,7 +8,7 @@
 
 ![Windows 11](https://img.shields.io/badge/testado%20no-Windows%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~66%20KB-success)
+![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~84%20KB-success)
 ![RAM](https://img.shields.io/badge/RAM%20ociosa-~2%20MB-success)
 ![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-yellow)
 
@@ -47,6 +47,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 ## Recursos
 
 - 📋 **Lista todos os dispositivos emparelhados**, um embaixo do outro, com os conectados primeiro.
+- ➕ **Procura e emparelha dispositivos novos** por perto (Bluetooth clássico e LE), sem abrir as Configurações do Windows.
 - 🔌 **Conecta e desconecta com um clique.** O botão mostra "Aguarde…" enquanto a operação acontece.
 - 🔋 **Barra de bateria colorida** que diminui com a carga e muda de cor: verde, amarelo/laranja e vermelho. Aparece quando o dispositivo informa a bateria ao Windows.
 - 🔔 **Alertas de bateria fraca** no Windows aos **20%** e aos **10%**.
@@ -56,7 +57,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 - 💬 **Dica rápida no ícone**: passe o mouse para ver o que está conectado e a bateria.
 - 🚀 **Opção "Iniciar com o Windows"** no menu do botão direito.
 - 🌐 **Português (Brasil) ou inglês**: escolha o idioma na engrenagem ⚙ do painel. O padrão é português.
-- 🪶 **Ultraleve**: um único `.exe` de ~66 KB, sem instalador e sem dependências extras.
+- 🪶 **Ultraleve**: um único `.exe` de ~84 KB, sem instalador e sem dependências extras.
 
 ## Requisitos
 
@@ -90,12 +91,24 @@ Veja [Compilando a partir do código](#compilando-a-partir-do-código). Leva pou
 | Botão **Conectar** / **Desconectar** | Altera a conexão do dispositivo |
 | Alfinete **📌** ao lado do botão | Fixa ou desafixa o dispositivo na barra de tarefas |
 | Ícone **⟳** no painel ou tecla **F5** | Atualiza a lista |
+| Botão **+** no painel | Procura dispositivos próximos para emparelhar (veja abaixo) |
 | Engrenagem **⚙** no painel | Abre as configurações do BtTray (idioma: Português (Brasil) ou English) |
 | Tecla **Esc** ou clique fora | Fecha o painel |
 | **Clique direito** no ícone | Menu: Abrir, Atualizar, Iniciar com o Windows, Configurações de Bluetooth e Sair |
 | Passar o mouse sobre o ícone | Mostra os dispositivos conectados e a bateria |
 
 **Deixar o ícone sempre visível:** por padrão, o Windows pode colocar o ícone dentro de **Mostrar ícones ocultos (^)**. Para fixá-lo na barra de tarefas, arraste o ícone para fora dessa área ou ative-o em *Configurações → Personalização → Barra de tarefas → Outros ícones da bandeja do sistema*.
+
+### Adicionando um dispositivo novo
+
+1. Coloque o dispositivo em **modo de emparelhamento** (normalmente segurando o botão de ligar ou de Bluetooth até uma luz piscar).
+2. Clique em **+** no topo do painel. O BtTray lista os dispositivos próximos que ainda não estão emparelhados; fones e caixas de som podem levar cerca de 30 s para aparecer. A busca dura 45 s, e **F5** ou ⟳ procura de novo.
+3. Clique em **Emparelhar** ao lado do dispositivo. Se o Windows pedir para confirmar um PIN, confira se é o mesmo mostrado no dispositivo.
+4. Depois de emparelhado, o dispositivo aparece na lista principal.
+
+> [!NOTE]
+> - Enquanto a busca está ativa, fones já conectados podem falhar por um instante, porque a busca usa o mesmo rádio Bluetooth. Ela para sozinha quando você volta, fecha o painel ou depois de 45 s.
+> - Dispositivos que pedem para **digitar** um PIN (alguns teclados antigos) ainda não são suportados. Emparelhe-os em *Configurações de Bluetooth*.
 
 ### Dispositivos fixados na barra de tarefas
 
@@ -178,7 +191,7 @@ Medições em um Windows 11 com um fone Bluetooth emparelhado:
 
 | Métrica | Valor |
 |---|---|
-| Tamanho do executável | ~66 KB |
+| Tamanho do executável | ~84 KB |
 | RAM em uso com o painel fechado | ~2,3 MB |
 | CPU ocioso | 0% (0 ms em 15 s) |
 | Tempo para listar os dispositivos | ~120 ms (em segundo plano) |
@@ -215,6 +228,9 @@ O executável é gerado em `bin\BtTray.exe`.
 > [!TIP]
 > O script também cria o ícone do aplicativo (`app.ico`) se ele não existir.
 
+> [!NOTE]
+> A busca de dispositivos usa o WinRT (`Windows.Devices.Enumeration`). As referências aos metadados dele, que já vêm no Windows 10/11, ficam em `winrt.rsp` e são passadas ao compilador como `@winrt.rsp`. Os caminhos nele supõem o Windows instalado em `C:\Windows`.
+
 ### Ferramenta de diagnóstico (opcional)
 
 A pasta `test/` tem um utilitário de linha de comando que lista os dispositivos e testa as ações sem abrir a interface:
@@ -237,7 +253,7 @@ O `test/PreviewMain.cs` gera imagens do painel com dispositivos fictícios em v�
 New-Item -ItemType Directory -Force bin | Out-Null
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 & $csc /nologo /main:BtTray.PreviewMain /out:bin\preview.exe /win32manifest:app.manifest `
-    /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\PreviewMain.cs
+    '@winrt.rsp' /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\PreviewMain.cs
 
 .\bin\preview.exe bin\preview.png                # gera preview-claro.png, preview-escuro.png e preview-icones.png
 .\bin\preview.exe bin\preview.png --notificar    # também mostra as notificações de 20% e 10%
@@ -251,7 +267,7 @@ O `test/AlertTests.cs` confere as regras dos avisos de bateria (20%, 10%, oscila
 New-Item -ItemType Directory -Force bin | Out-Null
 $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 & $csc /nologo /main:BtTray.AlertTests /out:bin\alerttests.exe `
-    /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\AlertTests.cs
+    '@winrt.rsp' /r:System.Windows.Forms.dll /r:System.Drawing.dll src\*.cs test\AlertTests.cs
 .\bin\alerttests.exe
 ```
 
@@ -282,9 +298,10 @@ O workflow confere se a tag bate com a versão do `.exe`, compila e cria a Relea
 | Listar dispositivos | `SetupAPI` (enumeradores `BTHENUM`, `BTHLE`, `BTHLEDEVICE` e `BTHHFENUM`) |
 | Status de conexão | Propriedade de dispositivo `{83DA6326-…} 15` (conectado) |
 | Bateria | Propriedade `{104EA319-…} 2`, a mesma usada pelas Configurações do Windows |
+| Procurar e emparelhar dispositivos novos | WinRT `Windows.Devices.Enumeration` (`DeviceWatcher` e `DeviceInformationCustomPairing`), a mesma API usada pelas Configurações do Windows |
 | Dispositivos fixados | Um ícone por dispositivo com `Shell_NotifyIcon` e um GUID estável derivado do endereço, para o Windows lembrar se ele fica visível |
 | Alertas de bateria | Notificações da bandeja (`NotifyIcon.ShowBalloonTip`), que o Windows 10/11 exibe como notificações do sistema |
-| Conectar / desconectar áudio | `IOCTL_KS_PROPERTY` com `KSPROPSETID_BtAudio` (`ONESHOT_RECONNECT` / `ONESHOT_DISCONNECT`), o mesmo mecanismo do botão "Conectar" do Windows |
+| Conectar / desconectar áudio | `IOCTL_KS_PROPERTY` com `KSPROPSETID_BtAudio` (`ONESHOT_RECONNECT` / `ONESHOT_DISCONNECT`), o mesmo mecanismo do botão "Conectar" do Windows. Para desconectar, a conexão inteira é derrubada em seguida com `IOCTL_BTH_DISCONNECT_DEVICE`, porque muitos fones também mantêm um canal HID para os botões |
 | Conectar / desconectar outros | `BluetoothSetServiceState` (`bthprops.cpl`) |
 | Interface | WinForms com desenho próprio (GDI/GDI+), ícones da fonte *Segoe Fluent Icons* ou *Segoe MDL2 Assets* |
 | Detectar mudanças | Mensagem `WM_DEVICECHANGE`, com intervalo de espera antes de atualizar |
@@ -300,6 +317,7 @@ BtTray/
 │   ├── Bluetooth.cs     # Enumeração, bateria, conectar/desconectar (P/Invoke)
 │   ├── BatteryAlerts.cs # Regras dos avisos de bateria fraca (20%) e crítica (10%)
 │   ├── PinnedIcons.cs   # Ícones dos dispositivos fixados na barra de tarefas e a lista salva deles
+│   ├── Discovery.cs     # Busca de dispositivos próximos ainda não emparelhados e emparelhamento (WinRT)
 │   └── Theme.cs         # Cores claro/escuro, cores da barra de bateria, glifos e ícones da bandeja
 ├── test/
 │   ├── TestMain.cs      # Ferramenta de diagnóstico em linha de comando
@@ -315,6 +333,7 @@ BtTray/
 ├── app.manifest         # DPI, compatibilidade com Windows 10/11, execução sem administrador
 ├── app.ico              # Ícone do executável
 ├── build.ps1            # Script de compilação
+├── winrt.rsp            # Referências do compilador para o WinRT (busca de dispositivos)
 ├── README.md            # Este documento em inglês
 ├── README.pt-BR.md      # Este documento
 └── LICENSE              # Licença MIT
@@ -331,7 +350,7 @@ Verifique em **Mostrar ícones ocultos (^)**. O Windows costuma colocar ícones 
 <details>
 <summary><b>Meu dispositivo não aparece na lista</b></summary>
 
-O BtTray mostra apenas dispositivos **já emparelhados**. Para emparelhar um novo, use *Configurações de Bluetooth* no próprio painel e depois clique em ⟳.
+A lista principal mostra apenas dispositivos **já emparelhados**. Para emparelhar um novo, clique em **+** no painel (veja [Adicionando um dispositivo novo](#adicionando-um-dispositivo-novo)). Se ele não aparecer na busca, confira se está em modo de emparelhamento e se não está conectado a outro aparelho, como o celular.
 </details>
 
 <details>

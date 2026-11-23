@@ -1,0 +1,8 @@
+# Referências do WinRT (busca e emparelhamento de dispositivos, src/Discovery.cs).
+# Use com o csc do .NET Framework 4.8:  csc @winrt.rsp ...
+# Os .winmd vêm do próprio Windows 10/11; as facades vêm do .NET Framework 4.8.
+/r:C:\Windows\System32\WinMetadata\Windows.Foundation.winmd
+/r:C:\Windows\System32\WinMetadata\Windows.Devices.winmd
+/r:C:\Windows\Microsoft.NET\Framework64\v4.0.30319\System.Runtime.dll
+/r:C:\Windows\Microsoft.NET\Framework64\v4.0.30319\System.Runtime.WindowsRuntime.dll
+/r:C:\Windows\Microsoft.NET\Framework64\v4.0.30319\System.Runtime.InteropServices.WindowsRuntime.dll

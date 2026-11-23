@@ -89,7 +89,7 @@ namespace BtTray
                             GKeyboard = "", GMouse = "", GPhone = "", GComputer = "",
                             GGamepad = "", GRefresh = "", GSettings = "",
                             GPin = "", GPinned = "",
-                            GBack = "\uE72B", GCheck = "\uE73E";
+                            GBack = "\uE72B", GCheck = "\uE73E", GAdd = "\uE710";
 
         public static string Glyph(DeviceKind k)
         {

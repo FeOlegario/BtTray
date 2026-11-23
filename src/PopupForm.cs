@@ -9,14 +9,19 @@ namespace BtTray
 {
     /// <summary>
     /// Borderless flyout shown above the tray icon. Everything is owner-drawn (no child controls) to stay light.
-    /// It has two views: the device list and the app settings (opened by the gear in the header).
+    /// It has three views: the device list, the app settings (gear in the header) and the search for new devices
+    /// (plus button in the header). The search itself is run by TrayApp; this form only draws it.
     /// </summary>
     class PopupForm : Form
     {
+        public enum View { Devices, Settings, Discover }
+
         public event Action<BtDevice> ToggleRequested;
         public event Action RefreshRequested;
         public event Action DeviceChanged;
         public event Action<BtDevice> PinRequested;
+        public event Action DiscoverOpened, DiscoverClosed, RescanRequested;
+        public event Action<FoundDevice> PairRequested;
 
         /// <summary>Addresses of the devices pinned to the taskbar (owned by TrayApp).</summary>
         public readonly HashSet<string> Pinned = new HashSet<string>();
@@ -38,8 +43,15 @@ namespace BtTray
         bool hoverBtn, hoverPin, hoverRefresh, hoverSettings, hoverGear, hoverBack;
 
         static readonly Language[] Languages = { Language.PtBR, Language.English };
-        bool settingsView;
+        View view = View.Devices;
         int hoverLang = -1;
+
+        // search for new devices
+        List<FoundDevice> found = new List<FoundDevice>();
+        bool searching;
+        string pairingId, discoverError;
+        int fscroll, hoverFound = -1;
+        bool hoverFoundBtn, hoverAdd;
         int OptH, SectionH;
         readonly ToolTip tip = new ToolTip();
         string tipText;
@@ -120,22 +132,54 @@ namespace BtTray
         }
 
         /// <summary>Switches between the device list and the settings view.</summary>
-        public void SetSettingsView(bool on)
+        public void SetSettingsView(bool on) { SetView(on ? View.Settings : View.Devices); }
+
+        public View CurrentView { get { return view; } }
+
+        public void SetView(View v)
         {
-            if (settingsView == on) return;
-            settingsView = on;
-            hoverRow = hoverLang = -1;
-            hoverBtn = hoverPin = hoverRefresh = hoverGear = hoverBack = false;
+            if (view == v) return;
+            View old = view;
+            view = v;
+            hoverRow = hoverLang = hoverFound = -1;
+            hoverBtn = hoverPin = hoverRefresh = hoverGear = hoverBack = hoverAdd = hoverFoundBtn = false;
+            fscroll = 0;
+            if (v == View.Discover) discoverError = null;
             Cursor = Cursors.Default;
             UpdateTip();
             UpdateSize();
             Invalidate();
+            if (old == View.Discover && DiscoverClosed != null) DiscoverClosed();
+            if (v == View.Discover && DiscoverOpened != null) DiscoverOpened();
         }
+
+        /// <summary>Results of the search for new devices.</summary>
+        public void SetFound(List<FoundDevice> list, bool isSearching)
+        {
+            found = list;
+            searching = isSearching;
+            if (view == View.Discover)
+            {
+                hoverFound = -1; hoverFoundBtn = false;
+                UpdateSize();
+                fscroll = Math.Max(0, Math.Min(fscroll, found.Count * RowH - FoundListRect.Height));
+            }
+            Invalidate();
+        }
+
+        /// <summary>Id of the device being paired (its button shows "Please wait…"), or null.</summary>
+        public void SetPairing(string id) { pairingId = id; Invalidate(); }
+
+        /// <summary>Message shown in the status line of the search view, or null.</summary>
+        public void SetDiscoverError(string message) { discoverError = message; Invalidate(); }
 
         void UpdateSize()
         {
             int rows = Math.Max(1, Math.Min(devices.Count, MaxRows));
-            int content = settingsView ? SectionH + Languages.Length * OptH + Sc(4) : rows * RowH;
+            int content;
+            if (view == View.Settings) content = SectionH + Languages.Length * OptH + Sc(4);
+            else if (view == View.Discover) content = SectionH + Math.Max(1, Math.Min(found.Count, MaxRows - 1)) * RowH;
+            else content = rows * RowH;
             int h = HeaderH + content + Pad * 2 + FooterH;
             int maxScroll = Math.Max(0, devices.Count * RowH - MaxRows * RowH);
             scroll = Math.Min(scroll, maxScroll);
@@ -152,7 +196,7 @@ namespace BtTray
             Theme t = Theme.Current();
             if (t.Dark != theme.Dark) { theme = t; BackColor = t.Back; if (IsHandleCreated) ApplyDwm(); }
             scroll = 0; hoverRow = -1; hoverPin = false;
-            SetSettingsView(false);
+            SetView(View.Devices);
             PlaceNearTray();
             Show();
             Activate();
@@ -185,8 +229,12 @@ namespace BtTray
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Escape) { if (settingsView) SetSettingsView(false); else Hide(); }
-            else if (e.KeyCode == Keys.F5 && RefreshRequested != null) RefreshRequested();
+            if (e.KeyCode == Keys.Escape) { if (view != View.Devices) SetView(View.Devices); else Hide(); }
+            else if (e.KeyCode == Keys.F5)
+            {
+                if (view == View.Discover) Rescan();
+                else if (RefreshRequested != null) RefreshRequested();
+            }
             base.OnKeyDown(e);
         }
 
@@ -216,6 +264,19 @@ namespace BtTray
 
         Rectangle GearRect { get { Rectangle r = RefreshRect; return new Rectangle(r.Left - r.Width - Sc(2), r.Top, r.Width, r.Height); } }
 
+        Rectangle AddRect { get { Rectangle r = GearRect; return new Rectangle(r.Left - r.Width - Sc(2), r.Top, r.Width, r.Height); } }
+
+        // search view: a status line, then the found devices (scrollable)
+        Rectangle FoundListRect { get { Rectangle l = ListRect; return new Rectangle(l.Left, l.Top + SectionH, l.Width, l.Height - SectionH); } }
+
+        Rectangle FoundRect(int i)
+        {
+            Rectangle l = FoundListRect;
+            return new Rectangle(Pad, l.Top + i * RowH - fscroll, W - Pad * 2, RowH);
+        }
+
+        Color ErrorColor { get { return Color.FromArgb(theme.Dark ? 255 : 196, theme.Dark ? 153 : 43, theme.Dark ? 164 : 28); } }
+
         Rectangle BackRect { get { int z = Sc(34); return new Rectangle(Sc(8), (HeaderH - z) / 2 + Sc(2), z, z); } }
 
         Rectangle LangRect(int i)
@@ -243,7 +304,8 @@ namespace BtTray
             g.Clear(theme.Back);
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            if (settingsView) PaintSettings(g);
+            if (view == View.Settings) PaintSettings(g);
+            else if (view == View.Discover) PaintDiscover(g);
             else PaintDevices(g);
 
             // footer
@@ -260,10 +322,13 @@ namespace BtTray
         void PaintDevices(Graphics g)
         {
             // header
-            Rectangle gr = GearRect;
+            Rectangle gr = GearRect, ar = AddRect;
             TextRenderer.DrawText(g, L.T("Dispositivos Bluetooth", "Bluetooth devices"), fTitle,
-                                  new Rectangle(Sc(18), 0, gr.Left - Sc(22), HeaderH + Sc(4)), theme.Text,
+                                  new Rectangle(Sc(18), 0, ar.Left - Sc(22), HeaderH + Sc(4)), theme.Text,
                                   TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+            if (hoverAdd) FillRound(g, ar, Sc(5), theme.CardHover);
+            TextRenderer.DrawText(g, Theme.GAdd, fGlyphSmall, ar, theme.SubText,
+                                  TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
             if (hoverGear) FillRound(g, gr, Sc(5), theme.CardHover);
             TextRenderer.DrawText(g, Theme.GSettings, fGlyphSmall, gr, theme.SubText,
                                   TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
@@ -328,6 +393,102 @@ namespace BtTray
             }
         }
 
+        void PaintDiscover(Graphics g)
+        {
+            // header: back arrow + title + search again
+            Rectangle br = BackRect, rr = RefreshRect;
+            if (hoverBack) FillRound(g, br, Sc(5), theme.CardHover);
+            TextRenderer.DrawText(g, Theme.GBack, fGlyphSmall, br, theme.SubText,
+                                  TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            TextRenderer.DrawText(g, L.T("Adicionar dispositivo", "Add device"), fTitle,
+                                  new Rectangle(br.Right + Sc(6), 0, rr.Left - br.Right - Sc(10), HeaderH + Sc(4)), theme.Text,
+                                  TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+            if (hoverRefresh) FillRound(g, rr, Sc(5), theme.CardHover);
+            TextRenderer.DrawText(g, Theme.GRefresh, fGlyphSmall, rr, searching ? theme.Accent : theme.SubText,
+                                  TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+
+            // status line
+            Rectangle lr = ListRect;
+            string status;
+            Color sc = theme.SubText;
+            if (discoverError != null) { status = discoverError; sc = ErrorColor; }
+            else if (searching) { status = L.T("Procurando dispositivos próximos…", "Looking for nearby devices…"); sc = theme.Accent; }
+            else if (found.Count == 0) status = L.T("Nenhum dispositivo encontrado.", "No devices found.");
+            else status = L.T("Busca concluída. Para procurar de novo, pressione F5.", "Search finished. Press F5 to search again.");
+            TextRenderer.DrawText(g, status, fStatus, new Rectangle(Sc(18), lr.Top, W - Sc(36), SectionH), sc,
+                                  TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+
+            // found devices
+            Rectangle fl = FoundListRect;
+            g.SetClip(fl);
+            if (found.Count == 0)
+            {
+                string hint = searching
+                    ? L.T("Deixe o dispositivo ligado, por perto e em modo de emparelhamento.",
+                          "Keep the device on, nearby and in pairing mode.")
+                    : L.T("Coloque o dispositivo em modo de emparelhamento e pressione F5 para procurar de novo.",
+                          "Put the device in pairing mode and press F5 to search again.");
+                TextRenderer.DrawText(g, hint, fStatus, new Rectangle(Sc(24), fl.Top, W - Sc(48), fl.Height), theme.SubText,
+                                      TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak);
+            }
+            for (int i = 0; i < found.Count; i++)
+            {
+                Rectangle r = FoundRect(i);
+                if (r.Bottom < fl.Top || r.Top > fl.Bottom) continue;
+                DrawFound(g, found[i], r, i == hoverFound);
+            }
+            g.ResetClip();
+
+            if (found.Count * RowH > fl.Height)
+            {
+                int total = found.Count * RowH;
+                int th = Math.Max(Sc(20), fl.Height * fl.Height / total);
+                int ty = fl.Top + (fl.Height - th) * fscroll / Math.Max(1, total - fl.Height);
+                FillRound(g, new Rectangle(W - Sc(5), ty, Sc(3), th), Sc(1), theme.Border);
+            }
+        }
+
+        void DrawFound(Graphics g, FoundDevice f, Rectangle r, bool hover)
+        {
+            bool busy = pairingId == f.Id, blocked = pairingId != null && !busy;
+            if (hover && !blocked) FillRound(g, r, Sc(6), theme.CardHover);
+
+            TextRenderer.DrawText(g, Theme.Glyph(f.Kind), fGlyph, new Rectangle(r.Left + Sc(8), r.Top, Sc(36), r.Height), theme.SubText,
+                                  TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+
+            Rectangle b = ButtonRect(r);
+            int textLeft = r.Left + Sc(52), textRight = b.Left - Sc(8);
+            int mid = r.Top + r.Height / 2;
+            TextRenderer.DrawText(g, f.Name, fName, new Rectangle(textLeft, r.Top + Sc(8), textRight - textLeft, mid - r.Top - Sc(7)),
+                                  theme.Text, TextFormatFlags.Bottom | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+            string sub = busy ? L.T("Emparelhando…", "Pairing…") : f.IsLE ? "Bluetooth LE" : "Bluetooth";
+            TextRenderer.DrawText(g, sub, fStatus, new Rectangle(textLeft, mid + Sc(2), textRight - textLeft, Sc(18)), busy ? theme.Accent : theme.SubText,
+                                  TextFormatFlags.Top | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+
+            DrawButton(g, b, busy ? L.T("Aguarde…", "Please wait…") : L.T("Emparelhar", "Pair"), true,
+                       hover && hoverFoundBtn && pairingId == null, busy || blocked);
+        }
+
+        /// <summary>Rounded button: primary (accent) or secondary (bordered); muted while busy or unavailable.</summary>
+        void DrawButton(Graphics g, Rectangle b, string label, bool primary, bool hover, bool muted)
+        {
+            Color back, fore;
+            if (muted) { back = theme.Button; fore = theme.SubText; }
+            else if (!primary) { back = hover ? theme.ButtonHover : theme.Button; fore = theme.ButtonText; }
+            else
+            {
+                back = hover ? ControlPaint.Light(theme.Accent, theme.Dark ? -0.15f : 0.25f) : theme.Accent;
+                if (hover && theme.Dark) back = Color.FromArgb(80, 180, 230);
+                fore = theme.AccentText;
+            }
+            FillRound(g, b, Sc(4), back);
+            if (!primary || muted)
+                using (var path = Theme.RoundRect(new RectangleF(b.X + 0.5f, b.Y + 0.5f, b.Width - 1, b.Height - 1), Sc(4)))
+                using (var pen = new Pen(theme.Border)) g.DrawPath(pen, path);
+            TextRenderer.DrawText(g, label, fButton, b, fore,
+                                  TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        }
+
         void DrawRow(Graphics g, BtDevice d, Rectangle r, bool hover)
         {
             if (hover) FillRound(g, r, Sc(6), theme.CardHover);
@@ -353,7 +514,7 @@ namespace BtTray
             if (busy != null)
                 TextRenderer.DrawText(g, busy, fStatus, st, theme.Accent, tf);
             else if (err != null)
-                TextRenderer.DrawText(g, err, fStatus, st, Color.FromArgb(theme.Dark ? 255 : 196, theme.Dark ? 153 : 43, theme.Dark ? 164 : 28), tf);
+                TextRenderer.DrawText(g, err, fStatus, st, ErrorColor, tf);
             else
             {
                 string status = d.Connected ? L.T("Conectado", "Connected") : L.T("Desconectado", "Disconnected");
@@ -374,25 +535,10 @@ namespace BtTray
             // button
             if (d.CanToggle)
             {
-                Rectangle b = ButtonRect(r);
                 bool hb = hover && hoverBtn && busy == null;
-                string label;
-                Color back, fore;
-                if (busy != null) { label = L.T("Aguarde…", "Please wait…"); back = theme.Button; fore = theme.SubText; }
-                else if (d.Connected) { label = L.T("Desconectar", "Disconnect"); back = hb ? theme.ButtonHover : theme.Button; fore = theme.ButtonText; }
-                else
-                {
-                    label = L.T("Conectar", "Connect");
-                    back = hb ? ControlPaint.Light(theme.Accent, theme.Dark ? -0.15f : 0.25f) : theme.Accent;
-                    if (hb && theme.Dark) back = Color.FromArgb(80, 180, 230);
-                    fore = theme.AccentText;
-                }
-                FillRound(g, b, Sc(4), back);
-                if (d.Connected || busy != null)
-                    using (var path = Theme.RoundRect(new RectangleF(b.X + 0.5f, b.Y + 0.5f, b.Width - 1, b.Height - 1), Sc(4)))
-                    using (var pen = new Pen(theme.Border)) g.DrawPath(pen, path);
-                TextRenderer.DrawText(g, label, fButton, b, fore,
-                                      TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                string label = busy != null ? L.T("Aguarde…", "Please wait…")
+                             : d.Connected ? L.T("Desconectar", "Disconnect") : L.T("Conectar", "Connect");
+                DrawButton(g, ButtonRect(r), label, !d.Connected, hb, busy != null);
             }
         }
 
@@ -430,7 +576,28 @@ namespace BtTray
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-            if (settingsView)
+            if (view == View.Discover)
+            {
+                int fr = -1; bool fb = false;
+                if (FoundListRect.Contains(e.Location))
+                    for (int i = 0; i < found.Count; i++)
+                        if (FoundRect(i).Contains(e.Location))
+                        {
+                            fr = i;
+                            fb = pairingId == null && ButtonRect(FoundRect(i)).Contains(e.Location);
+                            break;
+                        }
+                bool hbk = BackRect.Contains(e.Location), hsr = RefreshRect.Contains(e.Location), hst = SettingsRect.Contains(e.Location);
+                if (fr != hoverFound || fb != hoverFoundBtn || hbk != hoverBack || hsr != hoverRefresh || hst != hoverSettings)
+                {
+                    hoverFound = fr; hoverFoundBtn = fb; hoverBack = hbk; hoverRefresh = hsr; hoverSettings = hst;
+                    Cursor = (fb || hbk || hsr || hst) ? Cursors.Hand : Cursors.Default;
+                    UpdateTip();
+                    Invalidate();
+                }
+                return;
+            }
+            if (view == View.Settings)
             {
                 int lang = -1;
                 for (int i = 0; i < Languages.Length; i++) if (LangRect(i).Contains(e.Location)) lang = i;
@@ -454,11 +621,13 @@ namespace BtTray
                         pin = PinRect(RowRect(i), devices[i]).Contains(e.Location);
                         break;
                     }
-            bool hr = RefreshRect.Contains(e.Location), hs = SettingsRect.Contains(e.Location), hg = GearRect.Contains(e.Location);
-            if (row != hoverRow || btn != hoverBtn || pin != hoverPin || hr != hoverRefresh || hs != hoverSettings || hg != hoverGear)
+            bool hr = RefreshRect.Contains(e.Location), hs = SettingsRect.Contains(e.Location), hg = GearRect.Contains(e.Location),
+                 ha = AddRect.Contains(e.Location);
+            if (row != hoverRow || btn != hoverBtn || pin != hoverPin || hr != hoverRefresh || hs != hoverSettings || hg != hoverGear
+                || ha != hoverAdd)
             {
-                hoverRow = row; hoverBtn = btn; hoverPin = pin; hoverRefresh = hr; hoverSettings = hs; hoverGear = hg;
-                Cursor = (btn || pin || hr || hs || hg) ? Cursors.Hand : Cursors.Default;
+                hoverRow = row; hoverBtn = btn; hoverPin = pin; hoverRefresh = hr; hoverSettings = hs; hoverGear = hg; hoverAdd = ha;
+                Cursor = (btn || pin || hr || hs || hg || ha) ? Cursors.Hand : Cursors.Default;
                 UpdateTip();
                 Invalidate();
             }
@@ -471,7 +640,9 @@ namespace BtTray
                 t = Pinned.Contains(devices[hoverRow].AddressHex)
                     ? L.T("Desafixar da barra de tarefas", "Unpin from taskbar")
                     : L.T("Fixar na barra de tarefas (mostra o ícone e a bateria)", "Pin to taskbar (shows the icon and battery)");
+            else if (hoverRefresh && view == View.Discover) t = L.T("Procurar novamente (F5)", "Search again (F5)");
             else if (hoverRefresh) t = L.T("Atualizar (F5)", "Refresh (F5)");
+            else if (hoverAdd) t = L.T("Adicionar dispositivo", "Add device");
             else if (hoverGear) t = L.T("Configurações", "Settings");
             else if (hoverBack) t = L.T("Voltar (Esc)", "Back (Esc)");
             if (t == tipText) return;
@@ -482,7 +653,8 @@ namespace BtTray
         protected override void OnMouseLeave(EventArgs e)
         {
             base.OnMouseLeave(e);
-            hoverRow = hoverLang = -1; hoverBtn = hoverPin = hoverRefresh = hoverSettings = hoverGear = hoverBack = false;
+            hoverRow = hoverLang = hoverFound = -1;
+            hoverBtn = hoverPin = hoverRefresh = hoverSettings = hoverGear = hoverBack = hoverAdd = hoverFoundBtn = false;
             UpdateTip();
             Invalidate();
         }
@@ -492,9 +664,23 @@ namespace BtTray
             base.OnMouseClick(e);
             if (e.Button != MouseButtons.Left) return;
             if (SettingsRect.Contains(e.Location)) { Program.OpenBluetoothSettings(); Hide(); return; }
-            if (settingsView)
+            if (view == View.Discover)
             {
-                if (BackRect.Contains(e.Location)) { SetSettingsView(false); return; }
+                if (BackRect.Contains(e.Location)) { SetView(View.Devices); return; }
+                if (RefreshRect.Contains(e.Location)) { Rescan(); return; }
+                if (pairingId != null || !FoundListRect.Contains(e.Location)) return;
+                for (int i = 0; i < found.Count; i++)
+                    if (ButtonRect(FoundRect(i)).Contains(e.Location))
+                    {
+                        discoverError = null;
+                        if (PairRequested != null) PairRequested(found[i]);
+                        return;
+                    }
+                return;
+            }
+            if (view == View.Settings)
+            {
+                if (BackRect.Contains(e.Location)) { SetView(View.Devices); return; }
                 for (int i = 0; i < Languages.Length; i++)
                     if (LangRect(i).Contains(e.Location))
                     {
@@ -504,7 +690,8 @@ namespace BtTray
                     }
                 return;
             }
-            if (GearRect.Contains(e.Location)) { SetSettingsView(true); return; }
+            if (GearRect.Contains(e.Location)) { SetView(View.Settings); return; }
+            if (AddRect.Contains(e.Location)) { SetView(View.Discover); return; }
             if (RefreshRect.Contains(e.Location)) { if (RefreshRequested != null) RefreshRequested(); return; }
             if (!ListRect.Contains(e.Location)) return;
             for (int i = 0; i < devices.Count; i++)
@@ -525,10 +712,24 @@ namespace BtTray
             }
         }
 
+        void Rescan()
+        {
+            discoverError = null;
+            if (pairingId == null && RescanRequested != null) RescanRequested();
+            Invalidate();
+        }
+
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
-            if (settingsView) return;
+            if (view == View.Settings) return;
+            if (view == View.Discover)
+            {
+                int fmax = Math.Max(0, found.Count * RowH - FoundListRect.Height);
+                int fs = Math.Max(0, Math.Min(fmax, fscroll - Math.Sign(e.Delta) * RowH));
+                if (fs != fscroll) { fscroll = fs; Invalidate(); }
+                return;
+            }
             int maxScroll = Math.Max(0, devices.Count * RowH - ListRect.Height);
             int ns = Math.Max(0, Math.Min(maxScroll, scroll - Math.Sign(e.Delta) * RowH));
             if (ns != scroll) { scroll = ns; Invalidate(); }
