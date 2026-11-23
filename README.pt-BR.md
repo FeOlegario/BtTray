@@ -6,7 +6,7 @@
 
 **Conecte e desconecte seus dispositivos Bluetooth com um clique, direto da bandeja do Windows.**
 
-![Windows 11](https://img.shields.io/badge/testado%20no-Windows%2011-0078D4?logo=windows&logoColor=white)
+![Windows 10 e 11](https://img.shields.io/badge/testado%20no-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
 ![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~84%20KB-success)
 ![RAM](https://img.shields.io/badge/RAM%20ociosa-~2%20MB-success)
@@ -53,7 +53,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 - 🔔 **Alertas de bateria fraca** no Windows aos **20%** e aos **10%**.
 - 📌 **Fixe um dispositivo na barra de tarefas**: ele ganha um ícone próprio na bandeja com o desenho do tipo de aparelho (fone, mouse, teclado…) e a **porcentagem da bateria**, sempre à vista.
 - 🖱️ **Vive na bandeja do sistema** e funciona dentro de **"Mostrar ícones ocultos" (^)**.
-- 🌗 **Segue o tema do Windows**: claro ou escuro, com cantos arredondados.
+- 🌗 **Segue o tema do Windows**: claro ou escuro, com cantos arredondados no Windows 11.
 - 💬 **Dica rápida no ícone**: passe o mouse para ver o que está conectado e a bateria.
 - 🚀 **Opção "Iniciar com o Windows"** no menu do botão direito.
 - 🌐 **Português (Brasil) ou inglês**: escolha o idioma na engrenagem ⚙ do painel. O padrão é português.
@@ -63,7 +63,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 
 | Item | Requisito |
 |---|---|
-| Sistema | Windows 11 (testado). O Windows 10 deve funcionar, sem os cantos arredondados, mas ainda não foi testado. |
+| Sistema | Windows 10 e Windows 11 (ambos testados). No Windows 10 o painel fica com cantos retos, porque os cantos arredondados são um recurso do Windows 11. |
 | Runtime | .NET Framework 4.8 (já vem instalado no Windows 10 1903+ e no Windows 11) |
 | Hardware | Adaptador Bluetooth |
 | Permissões | Usuário comum. Administrador **não** é necessário para fones e caixas de som. |

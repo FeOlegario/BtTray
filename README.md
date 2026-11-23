@@ -6,7 +6,7 @@
 
 **Connect and disconnect your Bluetooth devices with one click, right from the Windows system tray.**
 
-![Windows 11](https://img.shields.io/badge/tested%20on-Windows%2011-0078D4?logo=windows&logoColor=white)
+![Windows 10 and 11](https://img.shields.io/badge/tested%20on-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
 ![Size](https://img.shields.io/badge/executable-~84%20KB-success)
 ![RAM](https://img.shields.io/badge/idle%20RAM-~2%20MB-success)
@@ -56,7 +56,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 - 🔔 **Low battery alerts** from Windows at **20%** and **10%**.
 - 📌 **Pin a device to the taskbar**: it gets its own tray icon showing the device type (headphones, mouse, keyboard…) and its **battery percentage**, always in view.
 - 🖱️ **Lives in the system tray** and works from inside **"Show hidden icons" (^)**.
-- 🌗 **Follows the Windows theme**: light or dark, with rounded corners.
+- 🌗 **Follows the Windows theme**: light or dark, with rounded corners on Windows 11.
 - 💬 **Quick tooltip on the icon**: hover to see what is connected and the battery level.
 - 🚀 **"Iniciar com o Windows"** (*Start with Windows*) option in the right-click menu.
 - 🌐 **Portuguese (Brazil) or English**: pick the language from the ⚙ gear in the panel. Portuguese is the default.
@@ -66,7 +66,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 
 | Item | Requirement |
 |---|---|
-| OS | Windows 11 (tested). Windows 10 should work, without rounded corners, but has not been tested yet. |
+| OS | Windows 10 and Windows 11 (both tested). On Windows 10 the panel has square corners, because rounded corners are a Windows 11 feature. |
 | Runtime | .NET Framework 4.8 (already installed on Windows 10 1903+ and Windows 11) |
 | Hardware | Bluetooth adapter |
 | Permissions | Standard user. Administrator rights are **not** needed for headsets and speakers. |
