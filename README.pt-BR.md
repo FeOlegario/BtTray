@@ -307,6 +307,12 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 
 A cada push (em qualquer branch) e pull request, o workflow `.github/workflows/build.yml` roda o `build.ps1` no Windows, executa os testes dos alertas, compila as ferramentas de `test/` e publica as imagens de prévia do painel como artefato da execução. O `BtTray.exe` de cada execução e as Releases ficam com o `release.yml`, descrito abaixo.
 
+Antes de compilar, os dois workflows rodam o `.github/scripts/checar-publicacao.ps1`, que reprova a execução quando:
+- a versão em `src/Program.cs` não tem `release-notes/vX.Y.Z.md`, ou o arquivo não tem a seção em inglês ou a em português (e, numa tag, quando a tag não bate com a versão);
+- um arquivo de texto do repositório ou uma mensagem de commit contém um dos termos privados do secret `TERMOS_PRIVADOS` (nomes de aparelhos reais, um por linha) ou um endereço Bluetooth que parece real. O log mostra só o arquivo e a linha, nunca o termo.
+
+Os termos privados ficam só no secret do repositório (*Settings → Secrets and variables → Actions*), nunca no repositório. Sem o secret (por exemplo, em pull requests de forks), essa parte é pulada com um aviso. Imagens não são conferidas: revise as capturas de tela no olho.
+
 ### Publicando uma nova versão
 
 O workflow `.github/workflows/release.yml` compila o projeto num runner Windows a cada pull request e push na `main`. Para publicar uma versão:
@@ -321,7 +327,7 @@ O workflow `.github/workflows/release.yml` compila o projeto num runner Windows 
 
 O workflow confere se a tag bate com a versão do `.exe`, compila e cria a Release com o `BtTray.exe` e o arquivo `BtTray.exe.sha256`.
 
-**Notas da versão:** antes da tag, crie `release-notes/vX.Y.Z.md` (com o mesmo nome da tag) explicando o que mudou, em inglês e em português. Use os arquivos que já existem como modelo. O workflow usa esse arquivo como texto da Release. Se ele não existir, as notas mostram a lista de commits desde a tag anterior. Nos dois casos, quando as mudanças chegam por pull request, o GitHub acrescenta a seção **What's Changed** com os PRs.
+**Notas da versão:** antes da tag, crie `release-notes/vX.Y.Z.md` (com o mesmo nome da tag) explicando o que mudou, em inglês e em português. Use os arquivos que já existem como modelo. O workflow usa esse arquivo como texto da Release, e as checagens acima barram a tag se ele faltar. Nos dois casos, quando as mudanças chegam por pull request, o GitHub acrescenta a seção **What's Changed** com os PRs.
 
 ## Como funciona
 
@@ -363,7 +369,7 @@ BtTray/
 │   ├── PreviewMain.cs   # Prévia do painel e teste dos alertas
 │   └── AlertTests.cs    # Testes automáticos das regras de alerta (rodam no CI)
 ├── .github/workflows/
-│   ├── build.yml        # CI: compila e testa a cada push e PR
+│   ├── build.yml        # CI: checa, compila e testa a cada push e PR
 │   └── release.yml      # Compila e publica Releases ao enviar tag
 ├── docs/
 │   ├── screenshot.png      # Painel em português (este README)

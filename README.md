@@ -312,6 +312,12 @@ $csc = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 
 On every push (to any branch) and pull request, the `.github/workflows/build.yml` workflow runs `build.ps1` on Windows, runs the alert tests, builds the `test/` tools and uploads the panel preview images as a run artifact. The `BtTray.exe` of each run and the Releases are handled by `release.yml`, described below.
 
+Before building, both workflows run `.github/scripts/checar-publicacao.ps1`, which fails the run when:
+- the version in `src/Program.cs` has no `release-notes/vX.Y.Z.md`, or the file lacks the English or the Portuguese section (and, for a tag, when the tag does not match the version);
+- a tracked text file or a commit message contains one of the private terms in the `TERMOS_PRIVADOS` secret (names of real devices, one per line), or a Bluetooth address that looks real. The log only shows the file and line, never the term.
+
+The private terms live only in the repository secret (*Settings → Secrets and variables → Actions*), never in the repository. Without the secret (for example in pull requests from forks), that part is skipped with a warning. Images are not checked: review screenshots by eye.
+
 ### Publishing a new version
 
 The `.github/workflows/release.yml` workflow builds the project on a Windows runner on every pull request and push to `main`. To publish a version:
@@ -326,7 +332,7 @@ The `.github/workflows/release.yml` workflow builds the project on a Windows run
 
 The workflow checks that the tag matches the `.exe` version, builds it and creates the Release with `BtTray.exe` and the `BtTray.exe.sha256` file.
 
-**Release notes:** before tagging, create `release-notes/vX.Y.Z.md` (named after the tag) describing what changed, in English and in Portuguese. Use the existing files as a template. The workflow uses that file as the Release text. If it does not exist, the notes show the list of commits since the previous tag. Either way, when changes come in through pull requests, GitHub adds a **What's Changed** section listing them.
+**Release notes:** before tagging, create `release-notes/vX.Y.Z.md` (named after the tag) describing what changed, in English and in Portuguese. Use the existing files as a template. The workflow uses that file as the Release text, and the checks above stop the tag if it is missing. Either way, when changes come in through pull requests, GitHub adds a **What's Changed** section listing them.
 
 ## How it works
 
@@ -368,7 +374,7 @@ BtTray/
 │   ├── PreviewMain.cs   # Panel preview and alert check
 │   └── AlertTests.cs    # Automated alert rule tests (run in CI)
 ├── .github/workflows/
-│   ├── build.yml        # CI: builds and tests on every push and PR
+│   ├── build.yml        # CI: checks, builds and tests on every push and PR
 │   └── release.yml      # Builds and publishes Releases when a tag is pushed
 ├── docs/
 │   ├── screenshot.png      # Panel in Portuguese (README.pt-BR.md)

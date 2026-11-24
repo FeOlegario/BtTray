@@ -16,6 +16,19 @@ jobs:
       CSC: C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # histórico completo, para checar as mensagens dos commits do push/PR
+
+      # Notas da versão (release-notes/vX.Y.Z.md em inglês e português) e dados privados: nomes de dispositivos
+      # (secret TERMOS_PRIVADOS, um por linha) e endereços Bluetooth reais em arquivos e mensagens de commit.
+      - name: Checagens de publicação
+        env:
+          TERMOS_PRIVADOS: ${{ secrets.TERMOS_PRIVADOS }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          $range = ''
+          if ($env:BASE -and $env:BASE -notmatch '^0+$') { $range = "$env:BASE..HEAD" }
+          .\.github\scripts\checar-publicacao.ps1 -Commits $range
 
       - name: Compilar BtTray.exe
         run: .\build.ps1
