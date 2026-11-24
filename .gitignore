@@ -1,3 +1,6 @@
 bin/
 *.pdb
 .env
+# Notas locais do Claude (memória entre sessões, não publicar)
+.notas/
+CLAUDE.local.md
