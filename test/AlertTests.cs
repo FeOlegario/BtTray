@@ -75,9 +75,9 @@ namespace BtTray
                 DeviceNames.Apply(list, new Dictionary<string, string> { { "AAAAAAAAAAAA", "Fone do trabalho" } });
                 Check("apelido substitui o nome", a.Name == "Fone do trabalho" && a.OriginalName == "Zeta" && b.Name == "Mouse");
                 Check("lista reordenada pelo apelido, conectados primeiro", list[0] == a && list[1] == b && list[2] == c);
-                Check("nome vazio volta ao original", DeviceNames.Normalize("   ", "LEO-577") == null && DeviceNames.Normalize("", "LEO-577") == null);
-                Check("nome igual ao original remove o apelido", DeviceNames.Normalize(" LEO-577 ", "LEO-577") == null);
-                Check("apelido sem espaços nas pontas", DeviceNames.Normalize("  Fone  ", "LEO-577") == "Fone");
+                Check("nome vazio volta ao original", DeviceNames.Normalize("   ", "BT-100") == null && DeviceNames.Normalize("", "BT-100") == null);
+                Check("nome igual ao original remove o apelido", DeviceNames.Normalize(" BT-100 ", "BT-100") == null);
+                Check("apelido sem espaços nas pontas", DeviceNames.Normalize("  Fone  ", "BT-100") == "Fone");
                 Check("apelido em uma linha só", DeviceNames.Normalize("Fone\tdo\r\ntrabalho", "x") == "Fone do trabalho");
                 Check("apelido limitado a 64 caracteres", DeviceNames.Normalize(new string('a', 100), "x").Length == DeviceNames.MaxLength);
             }
