@@ -8,11 +8,11 @@
 
 ![Windows 10 e 11](https://img.shields.io/badge/testado%20no-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~89%20KB-success)
+![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~99%20KB-success)
 ![RAM](https://img.shields.io/badge/RAM%20ociosa-~2%20MB-success)
 ![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-yellow)
 
-<img src="docs/screenshot.png" alt="Painel do BtTray mostrando um fone conectado com a barra de bateria verde em 100%" width="480">
+<img src="docs/screenshot.png" alt="Painel do BtTray no tema escuro: fone sem fio conectado com 85% e fixado na barra de tarefas, um mouse com 60% e uma caixa de som desconectada" width="432">
 
 </div>
 
@@ -49,6 +49,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 - 📋 **Lista todos os dispositivos emparelhados**, um embaixo do outro, com os conectados primeiro.
 - ➕ **Procura e emparelha dispositivos novos** por perto (Bluetooth clássico e LE), sem abrir as Configurações do Windows.
 - ✏️ **Renomeie dispositivos** com nomes seus ("Fone do trabalho"), usados em todo o BtTray.
+- ⌨️ **Funciona com teclado e leitor de tela**: use o painel inteiro com Tab, as setas e Enter, e ouça-o com o Narrador ou o NVDA.
 - 🔌 **Conecta e desconecta com um clique.** O botão mostra "Aguarde…" enquanto a operação acontece.
 - 🔋 **Barra de bateria colorida** que diminui com a carga e muda de cor: verde, amarelo/laranja e vermelho. Aparece quando o dispositivo informa a bateria ao Windows.
 - 🔔 **Alertas de bateria fraca** no Windows aos **20%** e aos **10%**.
@@ -58,7 +59,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 - 💬 **Dica rápida no ícone**: passe o mouse para ver o que está conectado e a bateria.
 - 🚀 **Opção "Iniciar com o Windows"** no menu do botão direito.
 - 🌐 **Português (Brasil) ou inglês**: escolha o idioma na engrenagem ⚙ do painel. O padrão é português.
-- 🪶 **Ultraleve**: um único `.exe` de ~89 KB, sem instalador e sem dependências extras.
+- 🪶 **Ultraleve**: um único `.exe` de ~99 KB, sem instalador e sem dependências extras.
 
 ## Requisitos
 
@@ -96,6 +97,7 @@ Veja [Compilando a partir do código](#compilando-a-partir-do-código). Leva pou
 | Lápis **✎** ao lado do nome, ou duplo clique no nome | Renomeia o dispositivo (veja abaixo) |
 | Engrenagem **⚙** no painel | Abre as configurações do BtTray (idioma: Português (Brasil) ou English) |
 | Tecla **Esc** ou clique fora | Fecha o painel |
+| **Tab** / **Shift+Tab** ou as setas | Passam de um botão para outro (veja [Teclado e leitores de tela](#teclado-e-leitores-de-tela)) |
 | **Clique direito** no ícone | Menu: Abrir, Atualizar, Iniciar com o Windows, Configurações de Bluetooth e Sair |
 | Passar o mouse sobre o ícone | Mostra os dispositivos conectados e a bateria |
 
@@ -108,6 +110,25 @@ Passe o mouse sobre um dispositivo e clique no lápis **✎** ao lado do nome, o
 - O nome novo aparece em todo o BtTray: no painel, na dica do ícone da bandeja, nos ícones fixados e nos alertas de bateria.
 - Ele só existe no BtTray: o Windows e as Configurações continuam com o nome original. Passe o mouse sobre o lápis para vê-lo.
 - Para voltar ao nome original, renomeie o dispositivo com o nome vazio.
+
+### Teclado e leitores de tela
+
+O painel pode ser usado sem mouse:
+
+| Tecla | Ação |
+|---|---|
+| **Tab** / **↓** / **→** | Próximo botão |
+| **Shift+Tab** / **↑** / **←** | Botão anterior |
+| **Home** / **End** | Primeiro / último botão |
+| **Enter** ou **Espaço** | Pressiona o botão em foco |
+| **F2** | Renomeia o dispositivo da linha em foco |
+| **F5** | Atualiza a lista (ou procura de novo em *Adicionar dispositivo*) |
+| **Esc** | Volta para a lista ou fecha o painel |
+
+O botão em foco ganha um contorno, como no Windows 11. Leitores de tela (Narrador, NVDA) leem cada botão com o dispositivo e o estado dele, por exemplo "Desconectar: Fone sem fio, Conectado, bateria 85%".
+
+> [!TIP]
+> Para abrir o painel pelo teclado, crie um atalho para o `BtTray.exe` com uma combinação de teclas (*Propriedades do atalho → Tecla de atalho*): executar o BtTray de novo abre o painel da cópia que já está rodando.
 
 ### Adicionando um dispositivo novo
 
@@ -201,7 +222,7 @@ Medições em um Windows 11 com um fone Bluetooth emparelhado:
 
 | Métrica | Valor |
 |---|---|
-| Tamanho do executável | ~89 KB |
+| Tamanho do executável | ~99 KB |
 | RAM em uso com o painel fechado | ~2,3 MB |
 | CPU ocioso | 0% (0 ms em 15 s) |
 | Tempo para listar os dispositivos | ~120 ms (em segundo plano) |
@@ -309,6 +330,7 @@ O workflow confere se a tag bate com a versão do `.exe`, compila e cria a Relea
 | Listar dispositivos | `SetupAPI` (enumeradores `BTHENUM`, `BTHLE`, `BTHLEDEVICE` e `BTHHFENUM`) |
 | Status de conexão | Propriedade de dispositivo `{83DA6326-…} 15` (conectado) |
 | Bateria | Propriedade `{104EA319-…} 2`, a mesma usada pelas Configurações do Windows |
+| Teclado e leitores de tela | Cada tela lista seus botões como alvos usados pelo mouse, pelos cliques, pelo foco do teclado e por um `AccessibleObject` próprio para cada botão (MSAA, que o Windows também expõe via UI Automation) |
 | Procurar e emparelhar dispositivos novos | WinRT `Windows.Devices.Enumeration` (`DeviceWatcher` e `DeviceInformationCustomPairing`), a mesma API usada pelas Configurações do Windows |
 | Dispositivos fixados | Um ícone por dispositivo com `Shell_NotifyIcon` e um GUID estável derivado do endereço, para o Windows lembrar se ele fica visível |
 | Alertas de bateria | Notificações da bandeja (`NotifyIcon.ShowBalloonTip`), que o Windows 10/11 exibe como notificações do sistema |
@@ -323,7 +345,12 @@ O workflow confere se a tag bate com a versão do `.exe`, compila e cria a Relea
 BtTray/
 ├── src/
 │   ├── Program.cs       # Ponto de entrada, ícone da bandeja, menu, atualizações e inicialização com o Windows
-│   ├── PopupForm.cs     # Painel (flyout) desenhado manualmente, com a tela de configurações
+│   ├── PopupForm.cs     # Painel (flyout) desenhado manualmente: janela, rodapé, troca de telas, mouse e teclado
+│   ├── PanelView.cs     # Base das telas do painel e dos alvos (botões) que elas listam
+│   ├── DevicesView.cs   # Tela da lista de dispositivos (conectar, fixar, renomear, barra de bateria)
+│   ├── SettingsView.cs  # Tela de configurações (idioma)
+│   ├── DiscoverView.cs  # Tela "Adicionar dispositivo" (busca e emparelhamento)
+│   ├── PanelAccessibility.cs # Suporte a leitores de tela no painel
 │   ├── Lang.cs          # Idioma da interface (pt-BR ou inglês) e onde ele fica salvo
 │   ├── Bluetooth.cs     # Enumeração, bateria, conectar/desconectar (P/Invoke)
 │   ├── BatteryAlerts.cs # Regras dos avisos de bateria fraca (20%) e crítica (10%)
@@ -339,7 +366,8 @@ BtTray/
 │   ├── build.yml        # CI: compila e testa a cada push e PR
 │   └── release.yml      # Compila e publica Releases ao enviar tag
 ├── docs/
-│   ├── screenshot.png
+│   ├── screenshot.png      # Painel em português (este README)
+│   ├── screenshot-en.png   # Painel em inglês (README.md)
 │   └── cores-bateria.png
 ├── release-notes/       # Notas de cada versão (vX.Y.Z.md), em inglês e português
 ├── app.manifest         # DPI, compatibilidade com Windows 10/11, execução sem administrador
