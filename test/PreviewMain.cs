@@ -16,6 +16,16 @@ namespace BtTray
         [STAThread]
         static void Main(string[] args)
         {
+            // README images: preview.exe --docs docs   (screenshot.png in Portuguese, screenshot-en.png in English)
+            int docs = Array.IndexOf(args, "--docs");
+            if (docs >= 0)
+            {
+                string dir = docs + 1 < args.Length ? args[docs + 1] : "docs";
+                RenderScreenshot(Language.PtBR, System.IO.Path.Combine(dir, "screenshot.png"));
+                RenderScreenshot(Language.English, System.IO.Path.Combine(dir, "screenshot-en.png"));
+                return;
+            }
+
             // 1) alert rules
             var alerts = new BatteryAlerts();
             var dev = new BtDevice { Name = "Fone de teste", AddressHex = "000000000001", Connected = true };
@@ -41,6 +51,8 @@ namespace BtTray
             Render(list, true, basePath.Replace(".png", "-configuracoes-escuro.png"), true);
             RenderRename(list, false, basePath.Replace(".png", "-renomear-claro.png"));
             RenderRename(list, true, basePath.Replace(".png", "-renomear-escuro.png"));
+            RenderKeyboard(list, false, basePath.Replace(".png", "-teclado-claro.png"));
+            RenderKeyboard(list, true, basePath.Replace(".png", "-teclado-escuro.png"));
             RenderDiscover(false, true, basePath.Replace(".png", "-busca-claro.png"));
             RenderDiscover(true, false, basePath.Replace(".png", "-busca-escuro.png"));
             RenderDiscover(false, false, basePath.Replace(".png", "-busca-vazia.png"), true);
@@ -99,6 +111,72 @@ namespace BtTray
             }
         }
 
+        // README screenshot: dark theme, generic device names (never the names of real devices), the panel with
+        // rounded corners, a border and a soft shadow on a transparent background.
+        static void RenderScreenshot(Language lang, string path)
+        {
+            L.Current = lang;
+            Theme.ForceDark = true;
+            bool en = lang == Language.English;
+            var list = new List<BtDevice>
+            {
+                new BtDevice { Name = en ? "Wireless headphones" : "Fone sem fio", AddressHex = "0000000000A1", Connected = true,
+                               Battery = 85, Kind = DeviceKind.Headphones, HasAudio = true },
+                new BtDevice { Name = "Mouse", AddressHex = "0000000000A2", Connected = true, Battery = 60, Kind = DeviceKind.Mouse, IsLE = true },
+                new BtDevice { Name = en ? "Living room speaker" : "Caixa de som da sala", AddressHex = "0000000000A3",
+                               Kind = DeviceKind.Speaker, HasAudio = true },
+            };
+            foreach (var d in list) d.OriginalName = d.Name;
+            using (var f = new PopupForm())
+            {
+                f.Pinned.Add("0000000000A1");
+                f.SetDevices(list, new Dictionary<string, string>(), new Dictionary<string, string>());
+                using (var panel = new Bitmap(f.Width, f.Height))
+                {
+                    f.DrawToBitmap(panel, new Rectangle(0, 0, f.Width, f.Height));
+                    int m = 24, radius = 8;
+                    using (var bmp = new Bitmap(f.Width + m * 2, f.Height + m * 2, System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+                    using (var g = Graphics.FromImage(bmp))
+                    {
+                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                        // shadow: a few translucent rounded rectangles, wider and fainter outwards
+                        for (int k = 12; k >= 1; k--)
+                            using (var sp = Theme.RoundRect(new RectangleF(m - k, m - k + 4, f.Width + k * 2, f.Height + k * 2), radius + k))
+                            using (var sb = new SolidBrush(Color.FromArgb(6, 0, 0, 0))) g.FillPath(sb, sp);
+                        using (var clip = Theme.RoundRect(new RectangleF(m, m, f.Width, f.Height), radius))
+                        {
+                            g.SetClip(clip);
+                            g.DrawImage(panel, m, m);
+                            g.ResetClip();
+                            using (var pen = new Pen(Theme.Current().Border)) g.DrawPath(pen, clip);
+                        }
+                        bmp.Save(path);
+                        Console.WriteLine("Imagem do README salva em " + path);
+                    }
+                }
+            }
+            L.Current = Language.PtBR;
+        }
+
+        // Keyboard focus: after Tab presses, on the connect/disconnect button of the first device (row highlighted too).
+        static void RenderKeyboard(List<BtDevice> list, bool dark, string path)
+        {
+            Theme.ForceDark = dark;
+            var few = list.GetRange(0, 3);
+            using (var f = new PopupForm())
+            {
+                f.SetDevices(few, new Dictionary<string, string>(), new Dictionary<string, string>());
+                f.CreateControl();
+                f.PreviewTab(6);   // +, gear, refresh, then rename, pin and the button of the first device
+                using (var bmp = new Bitmap(f.Width, f.Height))
+                {
+                    f.DrawToBitmap(bmp, new Rectangle(0, 0, f.Width, f.Height));
+                    bmp.Save(path);
+                    Console.WriteLine("Prévia salva em " + path);
+                }
+            }
+        }
+
         // The device list with the first device being renamed and the pencil shown on the second (as if hovered).
         static void RenderRename(List<BtDevice> list, bool dark, string path)
         {
@@ -107,10 +185,9 @@ namespace BtTray
             using (var f = new PopupForm())
             {
                 f.SetDevices(few, new Dictionary<string, string>(), new Dictionary<string, string>());
-                var bf = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
                 f.CreateControl();
                 f.BeginRename(few[0]);
-                typeof(PopupForm).GetField("hoverRow", bf).SetValue(f, 1);
+                f.PreviewHover(new Point(f.Width / 2, f.HeaderH + f.Pad + f.RowH * 3 / 2));   // mouse over the second row
                 using (var bmp = new Bitmap(f.Width, f.Height))
                 {
                     f.DrawToBitmap(bmp, new Rectangle(0, 0, f.Width, f.Height));
@@ -125,8 +202,7 @@ namespace BtTray
             Theme.ForceDark = dark;
             using (var f = new PopupForm())
             {
-                var field = typeof(PopupForm).GetField("MaxRows", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                field.SetValue(f, list.Count);
+                f.MaxRows = list.Count;
                 f.Pinned.Add(list[0].AddressHex);   // show both states of the pin button
                 f.SetDevices(list, new Dictionary<string, string>(), new Dictionary<string, string>());
                 f.SetSettingsView(settings);

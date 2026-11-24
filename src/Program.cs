@@ -9,8 +9,8 @@ using Microsoft.Win32;
 
 [assembly: System.Reflection.AssemblyTitle("BtTray - Bluetooth na bandeja")]
 [assembly: System.Reflection.AssemblyProduct("BtTray")]
-[assembly: System.Reflection.AssemblyVersion("1.4.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.4.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.5.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.5.0.0")]
 
 namespace BtTray
 {

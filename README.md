@@ -8,11 +8,11 @@
 
 ![Windows 10 and 11](https://img.shields.io/badge/tested%20on-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Size](https://img.shields.io/badge/executable-~89%20KB-success)
+![Size](https://img.shields.io/badge/executable-~99%20KB-success)
 ![RAM](https://img.shields.io/badge/idle%20RAM-~2%20MB-success)
 ![MIT License](https://img.shields.io/badge/license-MIT-yellow)
 
-<img src="docs/screenshot.png" alt="BtTray panel showing a connected headset with a green battery bar at 100%" width="480">
+<img src="docs/screenshot-en.png" alt="BtTray panel in the dark theme: wireless headphones connected at 85% and pinned to the taskbar, a mouse at 60% and a disconnected speaker" width="432">
 
 </div>
 
@@ -52,6 +52,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 - 📋 **Lists all paired devices**, one below the other, with connected ones first.
 - ➕ **Finds and pairs new devices** nearby (Bluetooth Classic and LE) without opening Windows Settings.
 - ✏️ **Rename devices** with names of your own ("Work headphones"), used everywhere in BtTray.
+- ⌨️ **Keyboard and screen reader friendly**: use the whole panel with Tab, the arrow keys and Enter, and hear it with Narrator or NVDA.
 - 🔌 **Connects and disconnects with one click.** The button shows "Aguarde…" (*Please wait…*) while the operation is in progress.
 - 🔋 **Colored battery bar** that shrinks with the charge and changes color: green, yellow/orange and red. Shown when the device reports its battery to Windows.
 - 🔔 **Low battery alerts** from Windows at **20%** and **10%**.
@@ -61,7 +62,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 - 💬 **Quick tooltip on the icon**: hover to see what is connected and the battery level.
 - 🚀 **"Iniciar com o Windows"** (*Start with Windows*) option in the right-click menu.
 - 🌐 **Portuguese (Brazil) or English**: pick the language from the ⚙ gear in the panel. Portuguese is the default.
-- 🪶 **Ultralight**: a single ~89 KB `.exe`, no installer and no extra dependencies.
+- 🪶 **Ultralight**: a single ~99 KB `.exe`, no installer and no extra dependencies.
 
 ## Requirements
 
@@ -99,6 +100,7 @@ See [Building from source](#building-from-source). It takes a few seconds and re
 | **✎** pencil next to the name, or double-click the name | Renames the device (see below) |
 | **⚙** gear in the panel | Opens the BtTray settings (language: Português (Brasil) or English) |
 | **Esc** key or click outside | Closes the panel |
+| **Tab** / **Shift+Tab** or the arrow keys | Move between buttons (see [Keyboard and screen readers](#keyboard-and-screen-readers)) |
 | **Right-click** the icon | Menu: Abrir (*Open*), Atualizar (*Refresh*), Iniciar com o Windows (*Start with Windows*), Configurações de Bluetooth (*Bluetooth settings*) and Sair (*Exit*) |
 | Hover over the icon | Shows the connected devices and their battery |
 
@@ -111,6 +113,25 @@ Hover over a device and click the **✎** pencil next to its name, or double-cli
 - The new name shows up everywhere in BtTray: the panel, the tray tooltip, pinned icons and battery alerts.
 - It only exists in BtTray: Windows and its Settings keep the original name. Hover over the pencil to see it.
 - To go back to the original name, rename the device to an empty name.
+
+### Keyboard and screen readers
+
+The panel can be used without a mouse:
+
+| Key | Action |
+|---|---|
+| **Tab** / **↓** / **→** | Next button |
+| **Shift+Tab** / **↑** / **←** | Previous button |
+| **Home** / **End** | First / last button |
+| **Enter** or **Space** | Presses the focused button |
+| **F2** | Renames the device of the focused row |
+| **F5** | Refreshes the list (or searches again in *Adicionar dispositivo*) |
+| **Esc** | Goes back to the list, or closes the panel |
+
+The focused button gets an outline, like in Windows 11. Screen readers (Narrator, NVDA) read each button with the device and its status, for example "Disconnect: Wireless headphones, Connected, battery 85%" (with the interface in English).
+
+> [!TIP]
+> To open the panel from the keyboard, create a shortcut to `BtTray.exe` with a key combination (shortcut *Properties → Shortcut key*): running BtTray again opens the panel of the copy that is already running.
 
 ### Adding a new device
 
@@ -206,7 +227,7 @@ Measured on Windows 11 with one paired Bluetooth headset:
 
 | Metric | Value |
 |---|---|
-| Executable size | ~89 KB |
+| Executable size | ~99 KB |
 | RAM in use with the panel closed | ~2.3 MB |
 | Idle CPU | 0% (0 ms in 15 s) |
 | Time to list devices | ~120 ms (in the background) |
@@ -314,6 +335,7 @@ The workflow checks that the tag matches the `.exe` version, builds it and creat
 | List devices | `SetupAPI` (enumerators `BTHENUM`, `BTHLE`, `BTHLEDEVICE` and `BTHHFENUM`) |
 | Connection status | Device property `{83DA6326-…} 15` (connected) |
 | Battery | Property `{104EA319-…} 2`, the same one used by Windows Settings |
+| Keyboard and screen readers | Each view lists its buttons as targets used for hover, clicks, keyboard focus and a custom `AccessibleObject` per button (MSAA, which Windows also exposes through UI Automation) |
 | Find and pair new devices | WinRT `Windows.Devices.Enumeration` (`DeviceWatcher` and `DeviceInformationCustomPairing`), the same API used by Windows Settings |
 | Pinned devices | One icon per device with `Shell_NotifyIcon` and a stable GUID derived from its address, so Windows remembers whether it stays visible |
 | Battery alerts | Tray notifications (`NotifyIcon.ShowBalloonTip`), which Windows 10/11 shows as system notifications |
@@ -328,7 +350,12 @@ The workflow checks that the tag matches the `.exe` version, builds it and creat
 BtTray/
 ├── src/
 │   ├── Program.cs       # Entry point, tray icon, menu, refreshes and start with Windows
-│   ├── PopupForm.cs     # Owner-drawn panel (flyout), including the settings view
+│   ├── PopupForm.cs     # Owner-drawn panel (flyout): window, footer, switching views, mouse and keyboard
+│   ├── PanelView.cs     # Base of the panel views and the targets (buttons) they list
+│   ├── DevicesView.cs   # Device list view (connect, pin, rename, battery bar)
+│   ├── SettingsView.cs  # Settings view (language)
+│   ├── DiscoverView.cs  # "Add device" view (search and pairing)
+│   ├── PanelAccessibility.cs # Screen reader support for the panel
 │   ├── Lang.cs          # Interface language (pt-BR or English) and where it is saved
 │   ├── Bluetooth.cs     # Enumeration, battery, connect/disconnect (P/Invoke)
 │   ├── BatteryAlerts.cs # Low (20%) and critical (10%) battery warning rules
@@ -344,7 +371,8 @@ BtTray/
 │   ├── build.yml        # CI: builds and tests on every push and PR
 │   └── release.yml      # Builds and publishes Releases when a tag is pushed
 ├── docs/
-│   ├── screenshot.png
+│   ├── screenshot.png      # Panel in Portuguese (README.pt-BR.md)
+│   ├── screenshot-en.png   # Panel in English (this README)
 │   └── cores-bateria.png
 ├── release-notes/       # Notes for each version (vX.Y.Z.md), in English and Portuguese
 ├── app.manifest         # DPI, Windows 10/11 compatibility, runs without administrator
