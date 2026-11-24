@@ -8,7 +8,7 @@
 
 ![Windows 10 and 11](https://img.shields.io/badge/tested%20on-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Size](https://img.shields.io/badge/executable-~84%20KB-success)
+![Size](https://img.shields.io/badge/executable-~89%20KB-success)
 ![RAM](https://img.shields.io/badge/idle%20RAM-~2%20MB-success)
 ![MIT License](https://img.shields.io/badge/license-MIT-yellow)
 
@@ -51,6 +51,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 
 - 📋 **Lists all paired devices**, one below the other, with connected ones first.
 - ➕ **Finds and pairs new devices** nearby (Bluetooth Classic and LE) without opening Windows Settings.
+- ✏️ **Rename devices** with names of your own ("Work headphones"), used everywhere in BtTray.
 - 🔌 **Connects and disconnects with one click.** The button shows "Aguarde…" (*Please wait…*) while the operation is in progress.
 - 🔋 **Colored battery bar** that shrinks with the charge and changes color: green, yellow/orange and red. Shown when the device reports its battery to Windows.
 - 🔔 **Low battery alerts** from Windows at **20%** and **10%**.
@@ -60,7 +61,7 @@ It is designed to be **small, fast and invisible** while you are not using it.
 - 💬 **Quick tooltip on the icon**: hover to see what is connected and the battery level.
 - 🚀 **"Iniciar com o Windows"** (*Start with Windows*) option in the right-click menu.
 - 🌐 **Portuguese (Brazil) or English**: pick the language from the ⚙ gear in the panel. Portuguese is the default.
-- 🪶 **Ultralight**: a single ~84 KB `.exe`, no installer and no extra dependencies.
+- 🪶 **Ultralight**: a single ~89 KB `.exe`, no installer and no extra dependencies.
 
 ## Requirements
 
@@ -95,12 +96,21 @@ See [Building from source](#building-from-source). It takes a few seconds and re
 | **📌** pin next to the button | Pins or unpins the device to the taskbar |
 | **⟳** icon in the panel or **F5** key | Refreshes the list |
 | **+** in the panel | Searches for nearby devices to pair (see below) |
+| **✎** pencil next to the name, or double-click the name | Renames the device (see below) |
 | **⚙** gear in the panel | Opens the BtTray settings (language: Português (Brasil) or English) |
 | **Esc** key or click outside | Closes the panel |
 | **Right-click** the icon | Menu: Abrir (*Open*), Atualizar (*Refresh*), Iniciar com o Windows (*Start with Windows*), Configurações de Bluetooth (*Bluetooth settings*) and Sair (*Exit*) |
 | Hover over the icon | Shows the connected devices and their battery |
 
 **Keep the icon always visible:** by default, Windows may put the icon inside **Show hidden icons (^)**. To keep it on the taskbar, drag it out of that area or turn it on in *Settings → Personalization → Taskbar → Other system tray icons*.
+
+### Renaming devices
+
+Hover over a device and click the **✎** pencil next to its name, or double-click the name. Type the new name and press **Enter**; **Esc** cancels.
+
+- The new name shows up everywhere in BtTray: the panel, the tray tooltip, pinned icons and battery alerts.
+- It only exists in BtTray: Windows and its Settings keep the original name. Hover over the pencil to see it.
+- To go back to the original name, rename the device to an empty name.
 
 ### Adding a new device
 
@@ -196,7 +206,7 @@ Measured on Windows 11 with one paired Bluetooth headset:
 
 | Metric | Value |
 |---|---|
-| Executable size | ~84 KB |
+| Executable size | ~89 KB |
 | RAM in use with the panel closed | ~2.3 MB |
 | Idle CPU | 0% (0 ms in 15 s) |
 | Time to list devices | ~120 ms (in the background) |
@@ -212,11 +222,12 @@ To keep resource use low:
 
 - ❌ **No internet access**: no telemetry, automatic updates or data sending.
 - ❌ **Collects no information** about you or your devices.
-- ✅ Writes to only three places on your computer:
+- ✅ Writes to only five places on your computer:
   - `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\BtTray`, **only** if you turn on *Iniciar com o Windows* (*Start with Windows*).
   - `%LOCALAPPDATA%\BtTray\servicos-desativados.txt`, **only** when you disconnect a non-audio device, to know which services to re-enable later.
   - `%LOCALAPPDATA%\BtTray\fixados.txt`, **only** if you pin a device to the taskbar (address, type and name of the pinned devices).
   - `%LOCALAPPDATA%\BtTray\configuracoes.txt`, **only** if you change the language (stores just the chosen language).
+  - `%LOCALAPPDATA%\BtTray\nomes.txt`, **only** if you rename a device (address and the name you chose).
 
 ## Building from source
 
@@ -323,6 +334,7 @@ BtTray/
 │   ├── BatteryAlerts.cs # Low (20%) and critical (10%) battery warning rules
 │   ├── PinnedIcons.cs   # Icons of the devices pinned to the taskbar and their saved list
 │   ├── Discovery.cs     # Search for nearby unpaired devices and pairing (WinRT)
+│   ├── DeviceNames.cs   # Device names chosen by the user and where they are saved
 │   └── Theme.cs         # Light/dark colors, battery bar colors, glyphs and tray icons
 ├── test/
 │   ├── TestMain.cs      # Command-line diagnostic tool

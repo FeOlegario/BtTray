@@ -22,6 +22,7 @@ namespace BtTray
         public event Action<BtDevice> PinRequested;
         public event Action DiscoverOpened, DiscoverClosed, RescanRequested;
         public event Action<FoundDevice> PairRequested;
+        public event Action<BtDevice, string> RenameRequested;
 
         /// <summary>Addresses of the devices pinned to the taskbar (owned by TrayApp).</summary>
         public readonly HashSet<string> Pinned = new HashSet<string>();
@@ -54,9 +55,14 @@ namespace BtTray
         bool hoverFoundBtn, hoverAdd;
         int OptH, SectionH;
         readonly ToolTip tip = new ToolTip();
+
+        // renaming: a text box over the name of the device being renamed
+        TextBox editBox;
+        string editingAddress;
+        bool hoverEdit;
         string tipText;
 
-        Font fTitle, fName, fStatus, fButton, fGlyph, fGlyphSmall, fSection;
+        Font fTitle, fName, fStatus, fButton, fGlyph, fGlyphSmall, fGlyphTiny, fSection;
 
         public DateTime LastHidden = DateTime.MinValue;
 
@@ -82,6 +88,7 @@ namespace BtTray
             fButton = new Font("Segoe UI", 9f);
             fGlyph = new Font(Theme.IconFont, 15f);
             fGlyphSmall = new Font(Theme.IconFont, 11f);
+            fGlyphTiny = new Font(Theme.IconFont, 9.5f);
             fSection = new Font("Segoe UI Semibold", 9f);
             BackColor = theme.Back;
             UpdateSize();
@@ -128,6 +135,7 @@ namespace BtTray
             busyText = busy;
             errors = errs;
             UpdateSize();
+            if (editingAddress != null) PlaceEditBox();
             Invalidate();
         }
 
@@ -139,6 +147,7 @@ namespace BtTray
         public void SetView(View v)
         {
             if (view == v) return;
+            EndRename(false);
             View old = view;
             view = v;
             hoverRow = hoverLang = hoverFound = -1;
@@ -195,7 +204,8 @@ namespace BtTray
         {
             Theme t = Theme.Current();
             if (t.Dark != theme.Dark) { theme = t; BackColor = t.Back; if (IsHandleCreated) ApplyDwm(); }
-            scroll = 0; hoverRow = -1; hoverPin = false;
+            EndRename(false);
+            scroll = 0; hoverRow = -1; hoverPin = false; hoverEdit = false;
             SetView(View.Devices);
             PlaceNearTray();
             Show();
@@ -223,12 +233,15 @@ namespace BtTray
         protected override void OnDeactivate(EventArgs e)
         {
             base.OnDeactivate(e);
+            EndRename(true);   // clicking outside keeps what was typed, like renaming a file in Explorer
             LastHidden = DateTime.Now;
             Hide();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
+            // while renaming, Esc and F5 belong to the text box (KeyPreview sends them here first)
+            if (editingAddress != null) { base.OnKeyDown(e); return; }
             if (e.KeyCode == Keys.Escape) { if (view != View.Devices) SetView(View.Devices); else Hide(); }
             else if (e.KeyCode == Keys.F5)
             {
@@ -258,6 +271,26 @@ namespace BtTray
             int z = Sc(32);
             int right = d.CanToggle ? ButtonRect(row).Left - Sc(4) : row.Right - Sc(10);
             return new Rectangle(right - z, row.Top + (row.Height - z) / 2, z, z);
+        }
+
+        // name of a device row, leaving room for the pencil after it
+        int NameMaxWidth(Rectangle row, BtDevice d)
+        {
+            return PinRect(row, d).Left - Sc(4) - (row.Left + Sc(52)) - Sc(26);
+        }
+
+        Rectangle NameRect(Rectangle row, BtDevice d)
+        {
+            int mid = row.Top + row.Height / 2;
+            return new Rectangle(row.Left + Sc(52), row.Top + Sc(8), NameMaxWidth(row, d), mid - row.Top - Sc(7));
+        }
+
+        // pencil right after the name text
+        Rectangle EditRect(Rectangle row, BtDevice d)
+        {
+            int z = Sc(24), mid = row.Top + row.Height / 2;
+            int w = Math.Min(TextRenderer.MeasureText(d.Name, fName, Size.Empty, TextFormatFlags.NoPadding).Width, NameMaxWidth(row, d));
+            return new Rectangle(row.Left + Sc(52) + w + Sc(2), mid - Sc(8) - z / 2, z, z);
         }
 
         Rectangle RefreshRect { get { int z = Sc(34); return new Rectangle(W - z - Sc(10), (HeaderH - z) / 2 + Sc(2), z, z); } }
@@ -505,8 +538,27 @@ namespace BtTray
             Rectangle pr = PinRect(r, d);
             int textRight = pr.Left - Sc(4);
             int mid = r.Top + r.Height / 2;
-            TextRenderer.DrawText(g, d.Name, fName, new Rectangle(textLeft, r.Top + Sc(8), textRight - textLeft, mid - r.Top - Sc(7)),
-                                  theme.Text, TextFormatFlags.Bottom | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+            if (editingAddress == d.AddressHex && editBox != null)
+            {
+                // input frame around the text box
+                Rectangle fb = editBox.Bounds;
+                fb.Inflate(Sc(5), Sc(4));
+                FillRound(g, fb, Sc(4), theme.Button);
+                using (var path = Theme.RoundRect(new RectangleF(fb.X + 0.5f, fb.Y + 0.5f, fb.Width - 1, fb.Height - 1), Sc(4)))
+                using (var pen = new Pen(theme.Accent)) g.DrawPath(pen, path);
+            }
+            else
+            {
+                TextRenderer.DrawText(g, d.Name, fName, NameRect(r, d), theme.Text,
+                                      TextFormatFlags.Bottom | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                if (hover)
+                {
+                    Rectangle er = EditRect(r, d);
+                    if (hoverEdit) FillRound(g, er, Sc(4), theme.Dark ? theme.ButtonHover : theme.Border);
+                    TextRenderer.DrawText(g, Theme.GEdit, fGlyphTiny, er, theme.SubText,
+                                          TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                }
+            }
 
             // status line
             Rectangle st = new Rectangle(textLeft, mid + Sc(2), textRight - textLeft, Sc(18));
@@ -611,7 +663,7 @@ namespace BtTray
                 }
                 return;
             }
-            int row = -1; bool btn = false, pin = false;
+            int row = -1; bool btn = false, pin = false, edit = false;
             if (ListRect.Contains(e.Location))
                 for (int i = 0; i < devices.Count; i++)
                     if (RowRect(i).Contains(e.Location))
@@ -619,15 +671,17 @@ namespace BtTray
                         row = i;
                         btn = devices[i].CanToggle && ButtonRect(RowRect(i)).Contains(e.Location);
                         pin = PinRect(RowRect(i), devices[i]).Contains(e.Location);
+                        edit = editingAddress != devices[i].AddressHex && EditRect(RowRect(i), devices[i]).Contains(e.Location);
                         break;
                     }
             bool hr = RefreshRect.Contains(e.Location), hs = SettingsRect.Contains(e.Location), hg = GearRect.Contains(e.Location),
                  ha = AddRect.Contains(e.Location);
             if (row != hoverRow || btn != hoverBtn || pin != hoverPin || hr != hoverRefresh || hs != hoverSettings || hg != hoverGear
-                || ha != hoverAdd)
+                || ha != hoverAdd || edit != hoverEdit)
             {
                 hoverRow = row; hoverBtn = btn; hoverPin = pin; hoverRefresh = hr; hoverSettings = hs; hoverGear = hg; hoverAdd = ha;
-                Cursor = (btn || pin || hr || hs || hg || ha) ? Cursors.Hand : Cursors.Default;
+                hoverEdit = edit;
+                Cursor = (btn || pin || hr || hs || hg || ha || edit) ? Cursors.Hand : Cursors.Default;
                 UpdateTip();
                 Invalidate();
             }
@@ -636,7 +690,14 @@ namespace BtTray
         void UpdateTip()
         {
             string t = null;
-            if (hoverPin && hoverRow >= 0 && hoverRow < devices.Count)
+            if (hoverEdit && hoverRow >= 0 && hoverRow < devices.Count)
+            {
+                BtDevice d = devices[hoverRow];
+                t = L.T("Renomear", "Rename");
+                if (d.OriginalName != null && d.Name != d.OriginalName)
+                    t += L.T(" (nome no Windows: ", " (Windows name: ") + d.OriginalName + ")";
+            }
+            else if (hoverPin && hoverRow >= 0 && hoverRow < devices.Count)
                 t = Pinned.Contains(devices[hoverRow].AddressHex)
                     ? L.T("Desafixar da barra de tarefas", "Unpin from taskbar")
                     : L.T("Fixar na barra de tarefas (mostra o ícone e a bateria)", "Pin to taskbar (shows the icon and battery)");
@@ -654,7 +715,7 @@ namespace BtTray
         {
             base.OnMouseLeave(e);
             hoverRow = hoverLang = hoverFound = -1;
-            hoverBtn = hoverPin = hoverRefresh = hoverSettings = hoverGear = hoverBack = hoverAdd = hoverFoundBtn = false;
+            hoverBtn = hoverPin = hoverRefresh = hoverSettings = hoverGear = hoverBack = hoverAdd = hoverFoundBtn = hoverEdit = false;
             UpdateTip();
             Invalidate();
         }
@@ -699,6 +760,7 @@ namespace BtTray
                 Rectangle r = RowRect(i);
                 if (!r.Contains(e.Location)) continue;
                 BtDevice d = devices[i];
+                if (editingAddress != d.AddressHex && EditRect(r, d).Contains(e.Location)) { BeginRename(d); return; }
                 if (PinRect(r, d).Contains(e.Location))
                 {
                     if (PinRequested != null) PinRequested(d);
@@ -710,6 +772,77 @@ namespace BtTray
                     ToggleRequested(d);
                 return;
             }
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            // a click anywhere else in the panel finishes the renaming (the text box keeps what was typed)
+            if (editingAddress != null) EndRename(true);
+            base.OnMouseDown(e);
+        }
+
+        protected override void OnMouseDoubleClick(MouseEventArgs e)
+        {
+            base.OnMouseDoubleClick(e);
+            if (view != View.Devices || e.Button != MouseButtons.Left || !ListRect.Contains(e.Location)) return;
+            for (int i = 0; i < devices.Count; i++)
+                if (NameRect(RowRect(i), devices[i]).Contains(e.Location)) { BeginRename(devices[i]); return; }
+        }
+
+        /// <summary>Turns the name of the device into a text box. Enter or clicking elsewhere saves, Esc cancels.</summary>
+        public void BeginRename(BtDevice d)
+        {
+            if (view != View.Devices) return;
+            if (editBox == null)
+            {
+                editBox = new TextBox { BorderStyle = BorderStyle.None, MaxLength = DeviceNames.MaxLength, Font = fName, Visible = false };
+                editBox.KeyDown += delegate (object o, KeyEventArgs k)
+                {
+                    if (k.KeyCode == Keys.Enter) { k.SuppressKeyPress = true; EndRename(true); }
+                    else if (k.KeyCode == Keys.Escape) { k.SuppressKeyPress = true; EndRename(false); }
+                };
+                editBox.LostFocus += delegate { EndRename(true); };
+                Controls.Add(editBox);
+            }
+            editingAddress = d.AddressHex;
+            editBox.BackColor = theme.Button;
+            editBox.ForeColor = theme.Text;
+            editBox.Text = d.Name;
+            hoverEdit = false;
+            PlaceEditBox();
+            if (editingAddress == null) return;
+            editBox.Visible = true;
+            editBox.Focus();
+            editBox.SelectAll();
+            UpdateTip();
+            Invalidate();
+        }
+
+        // Puts the text box over the name of the device being renamed, scrolling the row into view if needed.
+        void PlaceEditBox()
+        {
+            int i = devices.FindIndex(x => x.AddressHex == editingAddress);
+            if (i < 0) { EndRename(false); return; }   // the device went away
+            Rectangle lr = ListRect, r = RowRect(i);
+            if (r.Top < lr.Top) scroll -= lr.Top - r.Top;
+            else if (r.Bottom > lr.Bottom) scroll += r.Bottom - lr.Bottom;
+            r = RowRect(i);
+            int left = r.Left + Sc(52), right = PinRect(r, devices[i]).Left - Sc(12), mid = r.Top + r.Height / 2;
+            editBox.Width = Math.Max(Sc(40), right - left);
+            editBox.Location = new Point(left, mid - Sc(8) - editBox.Height / 2);
+        }
+
+        void EndRename(bool save)
+        {
+            if (editingAddress == null) return;
+            string address = editingAddress;
+            editingAddress = null;          // first: hiding the box raises LostFocus, which calls this again
+            string typed = editBox.Text;
+            editBox.Visible = false;
+            Invalidate();
+            if (!save) return;
+            BtDevice d = devices.Find(x => x.AddressHex == address);
+            if (d != null && RenameRequested != null) RenameRequested(d, typed);
         }
 
         void Rescan()
@@ -730,6 +863,7 @@ namespace BtTray
                 if (fs != fscroll) { fscroll = fs; Invalidate(); }
                 return;
             }
+            EndRename(false);
             int maxScroll = Math.Max(0, devices.Count * RowH - ListRect.Height);
             int ns = Math.Max(0, Math.Min(maxScroll, scroll - Math.Sign(e.Delta) * RowH));
             if (ns != scroll) { scroll = ns; Invalidate(); }

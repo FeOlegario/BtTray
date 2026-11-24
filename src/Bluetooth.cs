@@ -12,7 +12,8 @@ namespace BtTray
     class BtDevice
     {
         public string InstanceId;
-        public string Name;
+        public string Name;           // shown name: the BtTray nickname when there is one (see DeviceNames)
+        public string OriginalName;   // name reported by Windows
         public ulong Address;
         public string AddressHex;     // 12 hex chars, upper case
         public bool IsLE;
@@ -87,6 +88,7 @@ namespace BtTray
                         d.Address = addr;
                         d.Name = GetString(set, ref info, PK_FriendlyName) ?? GetString(set, ref info, PK_Name)
                                  ?? GetString(set, ref info, PK_DeviceDesc) ?? d.AddressHex;
+                        d.OriginalName = d.Name;
                         byte[] con = GetProp(set, ref info, PK_IsConnected);
                         d.Connected = con != null && con.Length > 0 && con[0] != 0;
                         byte[] cod = GetProp(set, ref info, PK_CoD) ?? GetProp(set, ref info, PK_CoDOld);
@@ -108,12 +110,18 @@ namespace BtTray
                 if (d.HasAudio && d.Kind == DeviceKind.Generic) d.Kind = DeviceKind.Headphones;
             }
 
+            SortDevices(devices);
+            return devices;
+        }
+
+        /// <summary>Connected devices first, then by name.</summary>
+        public static void SortDevices(List<BtDevice> devices)
+        {
             devices.Sort(delegate (BtDevice a, BtDevice b2)
             {
                 if (a.Connected != b2.Connected) return a.Connected ? -1 : 1;
                 return string.Compare(a.Name, b2.Name, StringComparison.CurrentCultureIgnoreCase);
             });
-            return devices;
         }
 
         internal static DeviceKind KindFromCod(uint cod)

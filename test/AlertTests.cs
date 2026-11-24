@@ -66,6 +66,22 @@ namespace BtTray
                     && L.Parse("xx") == Language.PtBR && L.Parse(L.Code(Language.English)) == Language.English);
             }
 
+            // Device nicknames (DeviceNames): shown instead of the Windows name, list sorted again, cleaned input.
+            {
+                var a = new BtDevice { Name = "Zeta", OriginalName = "Zeta", AddressHex = "AAAAAAAAAAAA", Connected = true };
+                var b = new BtDevice { Name = "Mouse", OriginalName = "Mouse", AddressHex = "BBBBBBBBBBBB", Connected = true };
+                var c = new BtDevice { Name = "Caixa", OriginalName = "Caixa", AddressHex = "CCCCCCCCCCCC", Connected = false };
+                var list = new List<BtDevice> { b, a, c };
+                DeviceNames.Apply(list, new Dictionary<string, string> { { "AAAAAAAAAAAA", "Fone do trabalho" } });
+                Check("apelido substitui o nome", a.Name == "Fone do trabalho" && a.OriginalName == "Zeta" && b.Name == "Mouse");
+                Check("lista reordenada pelo apelido, conectados primeiro", list[0] == a && list[1] == b && list[2] == c);
+                Check("nome vazio volta ao original", DeviceNames.Normalize("   ", "LEO-577") == null && DeviceNames.Normalize("", "LEO-577") == null);
+                Check("nome igual ao original remove o apelido", DeviceNames.Normalize(" LEO-577 ", "LEO-577") == null);
+                Check("apelido sem espaços nas pontas", DeviceNames.Normalize("  Fone  ", "LEO-577") == "Fone");
+                Check("apelido em uma linha só", DeviceNames.Normalize("Fone\tdo\r\ntrabalho", "x") == "Fone do trabalho");
+                Check("apelido limitado a 64 caracteres", DeviceNames.Normalize(new string('a', 100), "x").Length == DeviceNames.MaxLength);
+            }
+
             Console.WriteLine(failures == 0 ? "Todos os testes passaram." : failures + " teste(s) falharam.");
             return failures == 0 ? 0 : 1;
         }

@@ -9,8 +9,8 @@ using Microsoft.Win32;
 
 [assembly: System.Reflection.AssemblyTitle("BtTray - Bluetooth na bandeja")]
 [assembly: System.Reflection.AssemblyProduct("BtTray")]
-[assembly: System.Reflection.AssemblyVersion("1.3.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.3.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.4.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.4.0.0")]
 
 namespace BtTray
 {
@@ -62,6 +62,7 @@ namespace BtTray
 
         readonly PinnedIcons pinnedIcons = new PinnedIcons();
         readonly List<Pin> pins = PinStore.Load();
+        readonly Dictionary<string, string> names = DeviceNames.Load();   // nicknames by address
 
         DeviceDiscovery discovery;   // created on first use, so WinRT is only loaded when the search is opened
 
@@ -86,6 +87,7 @@ namespace BtTray
             };
             popup.DeviceChanged += delegate { debounce.Stop(); debounce.Start(); };
             popup.PinRequested += TogglePin;
+            popup.RenameRequested += Rename;
             popup.DiscoverOpened += TryStartDiscovery;
             popup.RescanRequested += TryStartDiscovery;
             popup.DiscoverClosed += StopDiscovery;
@@ -199,6 +201,7 @@ namespace BtTray
 
         void Apply(List<BtDevice> list)
         {
+            DeviceNames.Apply(list, names);
             devices = list;
             DateTime now = DateTime.Now;
 
@@ -327,6 +330,25 @@ namespace BtTray
                 else if (searchOpen) popup.SetDiscoverError(err);
                 else tray.ShowBalloonTip(6000, f.Name, err, ToolTipIcon.Warning);   // the flyout closed meanwhile
             });
+        }
+
+        // ---------------------------------------------------------------- nicknames
+        void Rename(BtDevice d, string typed)
+        {
+            string original = d.OriginalName ?? d.Name;
+            string nick = DeviceNames.Normalize(typed, original);
+            string current;
+            names.TryGetValue(d.AddressHex, out current);
+            if (nick == current) return;
+            if (nick == null) names.Remove(d.AddressHex);
+            else names[d.AddressHex] = nick;
+            DeviceNames.Save(names);
+
+            d.Name = nick ?? original;
+            Bluetooth.SortDevices(devices);
+            popup.SetDevices(devices, busyText, errors);
+            UpdateTooltip();
+            UpdatePins();   // pinned icons show (and remember) the new name too
         }
 
         // ---------------------------------------------------------------- devices pinned to the taskbar

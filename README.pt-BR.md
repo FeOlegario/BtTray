@@ -8,7 +8,7 @@
 
 ![Windows 10 e 11](https://img.shields.io/badge/testado%20no-Windows%2010%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![.NET Framework 4.8](https://img.shields.io/badge/.NET%20Framework-4.8-512BD4)
-![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~84%20KB-success)
+![Tamanho](https://img.shields.io/badge/execut%C3%A1vel-~89%20KB-success)
 ![RAM](https://img.shields.io/badge/RAM%20ociosa-~2%20MB-success)
 ![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-yellow)
 
@@ -48,6 +48,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 
 - 📋 **Lista todos os dispositivos emparelhados**, um embaixo do outro, com os conectados primeiro.
 - ➕ **Procura e emparelha dispositivos novos** por perto (Bluetooth clássico e LE), sem abrir as Configurações do Windows.
+- ✏️ **Renomeie dispositivos** com nomes seus ("Fone do trabalho"), usados em todo o BtTray.
 - 🔌 **Conecta e desconecta com um clique.** O botão mostra "Aguarde…" enquanto a operação acontece.
 - 🔋 **Barra de bateria colorida** que diminui com a carga e muda de cor: verde, amarelo/laranja e vermelho. Aparece quando o dispositivo informa a bateria ao Windows.
 - 🔔 **Alertas de bateria fraca** no Windows aos **20%** e aos **10%**.
@@ -57,7 +58,7 @@ Ele foi feito para ser **pequeno, rápido e invisível** enquanto não está em 
 - 💬 **Dica rápida no ícone**: passe o mouse para ver o que está conectado e a bateria.
 - 🚀 **Opção "Iniciar com o Windows"** no menu do botão direito.
 - 🌐 **Português (Brasil) ou inglês**: escolha o idioma na engrenagem ⚙ do painel. O padrão é português.
-- 🪶 **Ultraleve**: um único `.exe` de ~84 KB, sem instalador e sem dependências extras.
+- 🪶 **Ultraleve**: um único `.exe` de ~89 KB, sem instalador e sem dependências extras.
 
 ## Requisitos
 
@@ -92,12 +93,21 @@ Veja [Compilando a partir do código](#compilando-a-partir-do-código). Leva pou
 | Alfinete **📌** ao lado do botão | Fixa ou desafixa o dispositivo na barra de tarefas |
 | Ícone **⟳** no painel ou tecla **F5** | Atualiza a lista |
 | Botão **+** no painel | Procura dispositivos próximos para emparelhar (veja abaixo) |
+| Lápis **✎** ao lado do nome, ou duplo clique no nome | Renomeia o dispositivo (veja abaixo) |
 | Engrenagem **⚙** no painel | Abre as configurações do BtTray (idioma: Português (Brasil) ou English) |
 | Tecla **Esc** ou clique fora | Fecha o painel |
 | **Clique direito** no ícone | Menu: Abrir, Atualizar, Iniciar com o Windows, Configurações de Bluetooth e Sair |
 | Passar o mouse sobre o ícone | Mostra os dispositivos conectados e a bateria |
 
 **Deixar o ícone sempre visível:** por padrão, o Windows pode colocar o ícone dentro de **Mostrar ícones ocultos (^)**. Para fixá-lo na barra de tarefas, arraste o ícone para fora dessa área ou ative-o em *Configurações → Personalização → Barra de tarefas → Outros ícones da bandeja do sistema*.
+
+### Renomeando dispositivos
+
+Passe o mouse sobre um dispositivo e clique no lápis **✎** ao lado do nome, ou dê um duplo clique no nome. Digite o nome novo e pressione **Enter**; **Esc** cancela.
+
+- O nome novo aparece em todo o BtTray: no painel, na dica do ícone da bandeja, nos ícones fixados e nos alertas de bateria.
+- Ele só existe no BtTray: o Windows e as Configurações continuam com o nome original. Passe o mouse sobre o lápis para vê-lo.
+- Para voltar ao nome original, renomeie o dispositivo com o nome vazio.
 
 ### Adicionando um dispositivo novo
 
@@ -191,7 +201,7 @@ Medições em um Windows 11 com um fone Bluetooth emparelhado:
 
 | Métrica | Valor |
 |---|---|
-| Tamanho do executável | ~84 KB |
+| Tamanho do executável | ~89 KB |
 | RAM em uso com o painel fechado | ~2,3 MB |
 | CPU ocioso | 0% (0 ms em 15 s) |
 | Tempo para listar os dispositivos | ~120 ms (em segundo plano) |
@@ -207,11 +217,12 @@ Para manter o consumo baixo:
 
 - ❌ **Não acessa a internet**: não há telemetria, atualizações automáticas ou envio de dados.
 - ❌ **Não coleta informações** sobre você ou seus dispositivos.
-- ✅ Só grava em três lugares no seu computador:
+- ✅ Só grava em cinco lugares no seu computador:
   - `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\BtTray`, **somente** se você ativar *Iniciar com o Windows*.
   - `%LOCALAPPDATA%\BtTray\servicos-desativados.txt`, **somente** ao desconectar um dispositivo não-áudio, para saber quais serviços reativar depois.
   - `%LOCALAPPDATA%\BtTray\fixados.txt`, **somente** se você fixar um dispositivo na barra de tarefas (endereço, tipo e nome dos dispositivos fixados).
   - `%LOCALAPPDATA%\BtTray\configuracoes.txt`, **somente** se você trocar o idioma (guarda só o idioma escolhido).
+  - `%LOCALAPPDATA%\BtTray\nomes.txt`, **somente** se você renomear um dispositivo (endereço e o nome que você escolheu).
 
 ## Compilando a partir do código
 
@@ -318,6 +329,7 @@ BtTray/
 │   ├── BatteryAlerts.cs # Regras dos avisos de bateria fraca (20%) e crítica (10%)
 │   ├── PinnedIcons.cs   # Ícones dos dispositivos fixados na barra de tarefas e a lista salva deles
 │   ├── Discovery.cs     # Busca de dispositivos próximos ainda não emparelhados e emparelhamento (WinRT)
+│   ├── DeviceNames.cs   # Nomes que o usuário deu aos dispositivos e onde ficam salvos
 │   └── Theme.cs         # Cores claro/escuro, cores da barra de bateria, glifos e ícones da bandeja
 ├── test/
 │   ├── TestMain.cs      # Ferramenta de diagnóstico em linha de comando

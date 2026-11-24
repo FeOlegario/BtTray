@@ -39,6 +39,8 @@ namespace BtTray
             RenderPinnedIcons(basePath.Replace(".png", "-icones.png"));
             Render(list, false, basePath.Replace(".png", "-configuracoes-claro.png"), true);
             Render(list, true, basePath.Replace(".png", "-configuracoes-escuro.png"), true);
+            RenderRename(list, false, basePath.Replace(".png", "-renomear-claro.png"));
+            RenderRename(list, true, basePath.Replace(".png", "-renomear-escuro.png"));
             RenderDiscover(false, true, basePath.Replace(".png", "-busca-claro.png"));
             RenderDiscover(true, false, basePath.Replace(".png", "-busca-escuro.png"));
             RenderDiscover(false, false, basePath.Replace(".png", "-busca-vazia.png"), true);
@@ -88,6 +90,27 @@ namespace BtTray
                 f.SetView(PopupForm.View.Discover);
                 f.SetFound(found, searching);
                 if (!empty && !searching) f.SetPairing("2");
+                using (var bmp = new Bitmap(f.Width, f.Height))
+                {
+                    f.DrawToBitmap(bmp, new Rectangle(0, 0, f.Width, f.Height));
+                    bmp.Save(path);
+                    Console.WriteLine("Prévia salva em " + path);
+                }
+            }
+        }
+
+        // The device list with the first device being renamed and the pencil shown on the second (as if hovered).
+        static void RenderRename(List<BtDevice> list, bool dark, string path)
+        {
+            Theme.ForceDark = dark;
+            var few = list.GetRange(0, 3);
+            using (var f = new PopupForm())
+            {
+                f.SetDevices(few, new Dictionary<string, string>(), new Dictionary<string, string>());
+                var bf = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+                f.CreateControl();
+                f.BeginRename(few[0]);
+                typeof(PopupForm).GetField("hoverRow", bf).SetValue(f, 1);
                 using (var bmp = new Bitmap(f.Width, f.Height))
                 {
                     f.DrawToBitmap(bmp, new Rectangle(0, 0, f.Width, f.Height));
