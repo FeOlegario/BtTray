@@ -23,6 +23,14 @@ jobs:
         shell: pwsh
         run: ./build.ps1
 
+      # Antes de publicar: tag = versão, notas em inglês e português, nenhum dado privado (ver build.yml).
+      - name: Checagens de publicação
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          TERMOS_PRIVADOS: ${{ secrets.TERMOS_PRIVADOS }}
+        run: ./.github/scripts/checar-publicacao.ps1 -Tag '${{ github.ref_name }}'
+
       - name: Conferir versão da tag
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
